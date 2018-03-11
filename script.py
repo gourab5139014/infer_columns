@@ -2,15 +2,12 @@
 import numpy as np
 import pandas as pd
 import scipy.stats as st
-import statsmodels as sm
+# import statsmodels as sm
+import glob
+from analyzers import kl_divergence_analyzer
 # import matplotlib
 # import matplotlib.pyplot as plt
 
-# START CONFIGURATION SECTION
-
-DISTRIBUTIONS = [st.uniform, st.norm, st.zipf]
-
-# END CONFIGURATION SECTION
 def get_uniform_distributed_integers(min_value, max_value, total, fliped):
     fake1 = np.linspace(min_value, max_value, total, dtype=int)
     replace_at = np.random.randint(min_value, max_value, size=fliped)
@@ -21,10 +18,17 @@ def get_uniform_distributed_integers(min_value, max_value, total, fliped):
 
 def study_dataset_from_file(d):
     dt = pd.read_csv(d)
-    print(dt.head())
-    # TODO Resume by studying MLE based estimation of stat params and validate if our KL div approach is valid
+    print(pd.Series(dt["Year"]))
+    # TODO Call kl_analyzer here
+    k = kl_divergence_analyzer()
 
 if __name__ == "__main__":
+    
+    # for filename in glob.glob('data/*.csv'):
+    #     print(filename)
+    #     with open(filename) as f:
+    #         study_dataset_from_file(f)
     datasets = ['total_waterborne_commerce.csv']
+    # datasets = []
     for d in datasets:
         study_dataset_from_file(d)
