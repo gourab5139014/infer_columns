@@ -34,8 +34,8 @@ class kl_divergence_analyzer(analyzer):
         :type q: List[int]
         :rtype: double
         """
-        cf1, l1 = Counter(p), len(p)
-        cf2, l2 = Counter(q), len(q)
+        cf1 = Counter(p)
+        cf2 = Counter(q)
         
         print("Initial Lengths cf1 {0} , cf2 {1}".format(len(cf1),len(cf2)))
         # print(cf1.keys())
@@ -44,6 +44,16 @@ class kl_divergence_analyzer(analyzer):
         s = set(cf1.keys())
         s = s.intersection(cf2.keys()) # Collecting all unique elements in cf1 and cf2
 
+        # REmoving elements which are not in intersection of CF1 and CF2
+        for e in list(cf1):
+            if e not in s:
+                cf1.pop(e, None)
+
+        for e in list(cf2):
+            if e not in s:
+                cf2.pop(e, None)
+        
+        l1, l2 = len(cf1), len(cf2)
         # Normalizing the series to reflect probabilities of occurence
         for e in list(cf1): # Since we can't iterate over a mutable collection undergoing change
             if e in s:
