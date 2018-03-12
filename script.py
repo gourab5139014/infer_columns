@@ -18,9 +18,11 @@ def get_uniform_distributed_integers(min_value, max_value, total, fliped):
 
 def study_dataset_from_file(d):
     dt = pd.read_csv(d)
-    print(pd.Series(dt["Year"]))
+    # print(pd.Series(dt["Year"]))
     # TODO Call kl_analyzer here
     k = kl_divergence_analyzer()
+    k.attach_dataset(dt)
+    k.score_with_kl_divergence()
 
 if __name__ == "__main__":
     
