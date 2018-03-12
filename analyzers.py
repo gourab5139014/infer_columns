@@ -38,8 +38,8 @@ class kl_divergence_analyzer(analyzer):
         cf2 = Counter(q)
         
         print("Initial Lengths cf1 {0} , cf2 {1}".format(len(cf1),len(cf2)))
-        # print(cf1.keys())
-        # print(cf2.keys())
+        print(cf1.keys())
+        print(cf2.keys())
         # Pre-processing for using KL Divergence of Frequency Counters cf1 and cf2
         s = set(cf1.keys())
         s = s.intersection(cf2.keys()) # Collecting all unique elements in cf1 and cf2
@@ -95,17 +95,46 @@ class kl_divergence_analyzer(analyzer):
             if not self.dataset.empty: #Do the attribute scoring here
                 print("Starting comparison by KL")
                 # for col in self.dataset:
-                #     # print(col)
                 #     d = pd.Series(self.dataset[col])
                 #     print(d.name)
-                #     print(self._score_with_normal(d))
-                #     print(self._score_with_uniform(d))
-                d = pd.Series(self.dataset['Year'])
+                #     n_score = self._score_with_normal(d.copy())
+                #     print("Score with Normal Distribution = {0}\n".format(n_score))
+                #     u_score = self._score_with_uniform(d.copy())
+                #     print("Score with Uniform Distribution = {0}".format(u_score))
+                d = pd.Series(self.dataset['Total'])
                 print(d.name)
                 n_score = self._score_with_normal(d.copy())
                 print("Score with Normal Distribution = {0}\n".format(n_score))
                 u_score = self._score_with_uniform(d.copy())
                 print("Score with Uniform Distribution = {0}".format(u_score))
+            else:
+                raise ValueError('Non empty Dataset should be attached before starting comparison')
+        except AttributeError as ae:
+            print("{0}. Non empty Dataset should be attached before starting comparison".format(ae))
+
+class log_likelihood_analyzer(analyzer):
+    def __init__(self):
+        print("log_likelihood Analyzer Created")
+    
+    def score_with_log_likelihood(self):
+        try:
+            if not self.dataset.empty: #Do the attribute scoring here
+                print("Starting comparison by log_likelihood")
+                for col in self.dataset:
+                    for dst in self.DISTRIBUTIONS: 
+                        print(dst.name)
+                        d = pd.Series(self.dataset[col])
+                        print(d.name)
+                        n_score = self._score_with_normal(d.copy())
+                        print("Score with Normal Distribution = {0}\n".format(n_score))
+                        u_score = self._score_with_uniform(d.copy())
+                        print("Score with Uniform Distribution = {0}".format(u_score))
+                # d = pd.Series(self.dataset['Total'])
+                # print(d.name)
+                # n_score = self._score_with_normal(d.copy())
+                # print("Score with Normal Distribution = {0}\n".format(n_score))
+                # u_score = self._score_with_uniform(d.copy())
+                # print("Score with Uniform Distribution = {0}".format(u_score))
             else:
                 raise ValueError('Non empty Dataset should be attached before starting comparison')
         except AttributeError as ae:
