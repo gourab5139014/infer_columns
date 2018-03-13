@@ -40,14 +40,13 @@ if __name__ == "__main__":
     datasets = ['total_waterborne_commerce.csv']
     # datasets = []
     try:
-        lg.debug("Starting ")
         a = analyzer()
         for d in datasets:
             a.add_dataset(d)
-            a.run()
             # study_dataset_from_file(d)
+        a.run()
     except KeyError as ke:
         lg.critical('Need a unique dataset_id')
         # print("S**t happened")
-    except:
-        traceback.print_stack()
+    # except:
+    #     traceback.print_stack()

@@ -10,12 +10,12 @@ import traceback
 import logging as lg
 
 class analyzer(): # Contains configuration information common to all analyzers
-    
+    THETA = 0.2 # Threshold percentage of unique values in a number sequence beyond which it would be tagged Categorical
     # DISTRIBUTIONS = [st.uniform, st.norm, st.zipf]
     DISTRIBUTIONS = [st.uniform, st.norm]
 
     def __init__(self):
-        lg.debug("Analyzer Created")
+        lg.info("Analyzer Created")
         self.datasets = {} # (Dataset_tag) -> Dataset
         self.results = [] # List of tuples (<DatasetId>,<AttributeId>,<ComparedDistribution>,<Divergence>)
 
@@ -48,13 +48,34 @@ class analyzer(): # Contains configuration information common to all analyzers
         for d in self.datasets:
             lg.debug('Starting analyze dataset {0}'.format(d))
             df = self.datasets[d]
-            
+            for c in df:
+                lg.debug(c)
+                data = pd.Series(df[c])
+                sample = data[0]
+                lg.debug(sample)
+                try:
+                    int(sample)
+                    lg.debug("{0} is a number".format(sample))
+                    duplicate_proportion = ( len(data)-len(data.unique()) ) / len(data)                    
+                    lg.debug('Duplicate Prop = {0}'.format(duplicate_proportion))
+                    if duplicate_proportion > self.THETA:
+                        self._apply_categorical_analyses(data, c)
+                    else:
+                        self._apply_numerical_analyses(data, c)
+                except ValueError as ve:
+                    lg.debug("{0} is NOT a number".format(sample)) 
 
-class categorical_analyzer(analyzer):
+    def _apply_categorical_analyses(self, s, name):
+        pass
+    
+    def _apply_numerical_analyses(self, s, name):
+        lla = log_likelihood_analyzer()            
+
+class categorical_analyzer():
     def __init__(self):
         lg.debug("Categorical Analyzer created")
 
-class numerical_analyzer(analyzer):
+class numerical_analyzer():
     def __init__(self):
         lg.debug("Numerical Analyzer created")
         
@@ -155,9 +176,64 @@ class kl_divergence_analyzer(analyzer):
 class log_likelihood_analyzer(numerical_analyzer):
     def __init__(self):
         lg.debug("log_likelihood Analyzer Created")
-        analyzer.__init__(self)
+        # analyzer.__init__(self)
     
-    def score_with_log_likelihood(self, bins=200):
+    def score_for_series(self, s, bins=200):
+        try:
+            if not self.dataset.empty: #Do the attribute scoring here
+                lg.debug("Starting scoring {0} by log_likelihood".format(s))
+                
+                    # Best holders
+                    best_distribution = st.norm
+                    best_params = (0.0, 1.0)
+                    best_sse = np.inf
+
+                    for distribution in self.DISTRIBUTIONS: 
+                        data = pd.Series(self.dataset[col])
+                        lg.debug("Modelling {0} with {1}".format(data.name, distribution.name))
+
+                        ## CODE FOR DISTRIBUTION FITTING
+                        # Get histogram of original data
+                        y, x = np.histogram(data, bins=bins, density=True)
+                        # print("x = {0}".format(x))
+                        x = (x + np.roll(x, -1))[:-1] / 2.0
+
+                        # fit dist to data
+                        params = distribution.fit(data) #TODO Study return parameters for different distributions
+
+                        # Separate parts of parameters
+                        arg = params[:-2]
+                        loc = params[-2]
+                        scale = params[-1]
+
+                        # Calculate fitted PDF and error with fit in distribution
+                        pdf = distribution.pdf(x, loc=loc, scale=scale, *arg)
+                        sse = np.sum(np.power(y - pdf, 2.0))
+
+                        # identify if this distribution is better
+                        if best_sse > sse > 0:
+                            best_distribution = distribution
+                            best_params = params
+                            best_sse = sse
+                    self.save_observation(best_sse, best_distribution.name, col, self.dataset_tag)
+                # d = pd.Series(self.dataset['Total'])
+                # print(d.name)
+                # n_score = self._score_with_normal(d.copy())
+                # print("Score with Normal Distribution = {0}\n".format(n_score))
+                # u_score = self._score_with_uniform(d.copy())
+                # print("Score with Uniform Distribution = {0}".format(u_score))
+            else:
+                raise ValueError('Non empty Dataset should be attached before starting comparison')
+        except AttributeError as ae:
+            lg.critical("{0}. Non empty Dataset should be attached before starting comparison".format(ae))
+        #     tb = traceback.format_exc()
+        # else:
+        #     tb = ""
+        # finally:
+        #     print(tb)
+
+    @DeprecationWarning
+    def _score_with_log_likelihood(self, bins=200):
         try:
             if not self.dataset.empty: #Do the attribute scoring here
                 lg.debug("Starting comparison by log_likelihood")
