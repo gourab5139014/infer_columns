@@ -44,14 +44,10 @@ class analyzer(): # Contains configuration information common to all analyzers
         filename = filename_prefix + datetime.datetime.now().strftime("_%Y%m%d_%H%M") + ".out"
         # df.to_csv(path_or_buf=filename, float_format='%.6f', index=False)
         df.to_csv(path_or_buf=filename, index=False)
-        # with open(filename,'a') as ofile:
-        #     csv_out=csv.writer(ofile)
-        #     # csv_out.writerow(['name','num'])
-        #     for row in df:
-        #         csv_out.writerow(row)
         lg.info('Output written to {0}'.format(filename))
     
     def run(self):
+        lg.debug("Datasets \n{0}".format(self.datasets))
         results = pd.DataFrame(columns=('dataset_id', 'column_name', 'distribution', 'goodness_value'))
         for d in self.datasets:
             lg.info('Starting analyze dataset {0}'.format(d))
@@ -65,22 +61,23 @@ class analyzer(): # Contains configuration information common to all analyzers
                     lg.debug("{0} is a number".format(sample))
                     duplicate_proportion = ( len(data)-len(data.unique()) ) / len(data)
                     if duplicate_proportion > self.THETA:
-                        self._apply_categorical_analyses(data, c) # TODO Need to explore more here
+                        r = self._apply_categorical_analyses(data, d) # TODO Need to explore more here
+                        results = results.append(r)
                     else:
                         r = self._apply_numerical_analyses(data, d)
                         results = results.append(r)
-                        lg.debug('Current collection of results is {0}'.format(results))
+                    # lg.debug('Current collection of results is {0}'.format(results))
                 except ValueError as ve:
                     lg.debug("{0} is NOT a number".format(sample))
             self.export_results_to_csv(results, "Output") 
 
     def _apply_categorical_analyses(self, s, name):
-        pass
+        return pd.DataFrame([(name, s.name, 'Categorical', 1)], columns=('dataset_id', 'column_name', 'distribution', 'goodness_value'))
     
     def _apply_numerical_analyses(self, s, name):
         lla = log_likelihood_analyzer()
         r = lla.score_for_series(s, name)
-        lg.debug('Returning from _apply_numerical_analyses {0}'.format(r))
+        # lg.debug('Returning from _apply_numerical_analyses {0}'.format(r))
         return r
                     
 
