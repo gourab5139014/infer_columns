@@ -4,9 +4,11 @@ import pandas as pd
 import scipy.stats as st
 # import statsmodels as sm
 import glob
-from analyzers import kl_divergence_analyzer, log_likelihood_analyzer
+from analyzers import analyzer
+import logging as lg, sys, traceback
 # import matplotlib
 # import matplotlib.pyplot as plt
+lg.basicConfig(stream=sys.stderr, level=lg.DEBUG)
 
 def get_uniform_distributed_integers(min_value, max_value, total, fliped):
     fake1 = np.linspace(min_value, max_value, total, dtype=int)
@@ -23,10 +25,11 @@ def study_dataset_from_file(d):
     # k = kl_divergence_analyzer()
     # k.attach_dataset(dt)
     # k.score_with_kl_divergence()
-    ll = log_likelihood_analyzer()
-    ll.attach_dataset(dt, d)
-    ll.score_with_log_likelihood()
-    ll.export_results_to_csv(d)
+    
+    # ll = log_likelihood_analyzer()
+    # ll.attach_dataset(dt, d)
+    # ll.score_with_log_likelihood()
+    # ll.export_results_to_csv(d)
 
 if __name__ == "__main__":
     
@@ -36,5 +39,15 @@ if __name__ == "__main__":
     #         study_dataset_from_file(f)
     datasets = ['total_waterborne_commerce.csv']
     # datasets = []
-    for d in datasets:
-        study_dataset_from_file(d)
+    try:
+        lg.debug("Starting ")
+        a = analyzer()
+        for d in datasets:
+            a.add_dataset(d)
+            a.run()
+            # study_dataset_from_file(d)
+    except KeyError as ke:
+        lg.critical('Need a unique dataset_id')
+        # print("S**t happened")
+    except:
+        traceback.print_stack()

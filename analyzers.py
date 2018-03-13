@@ -7,6 +7,7 @@ from math import log
 import csv
 import datetime
 import traceback
+import logging as lg
 
 class analyzer(): # Contains configuration information common to all analyzers
     
@@ -14,14 +15,23 @@ class analyzer(): # Contains configuration information common to all analyzers
     DISTRIBUTIONS = [st.uniform, st.norm]
 
     def __init__(self):
-        print("Analyzer Created")
-        # self.results_df = pd.DataFrame()
+        lg.debug("Analyzer Created")
+        self.datasets = {} # (Dataset_tag) -> Dataset
         self.results = [] # List of tuples (<DatasetId>,<AttributeId>,<ComparedDistribution>,<Divergence>)
 
-    def attach_dataset(self, dt:pd.DataFrame, dataset_id):
-        self.dataset = dt
-        self.dataset_tag = dataset_id
-        print("Dataset {0} configured".format(self.dataset_tag))
+    def add_dataframe(self, dt:pd.DataFrame, dataset_id):        
+        if dataset_id in self.datasets:
+            raise KeyError('{0} is already present in Datasets')
+        else:
+            self.datasets[dataset_id] = dt
+            lg.debug("Dataset {0} added".format(dataset_id))
+    
+    def add_dataset(self, dt):
+        df = pd.read_csv(dt)
+        if dt in self.datasets:
+            raise KeyError('{0} is already present in Datasets')
+        else:
+            self.add_dataframe(df, dt)
     
     def save_observation(self, goodness_value, best_dst, column_name, dataset_id):
         self.results.append((self.dataset_tag, column_name, best_dst, goodness_value))
@@ -33,11 +43,24 @@ class analyzer(): # Contains configuration information common to all analyzers
             # csv_out.writerow(['name','num'])
             for row in self.results:
                 csv_out.writerow(row)
+    
+    def run(self):
+        for d in self.datasets:
+            lg.debug('Starting analyze dataset {0}'.format(d))
+            df = self.datasets[d]
+            
 
+class categorical_analyzer(analyzer):
+    def __init__(self):
+        lg.debug("Categorical Analyzer created")
+
+class numerical_analyzer(analyzer):
+    def __init__(self):
+        lg.debug("Numerical Analyzer created")
         
 class kl_divergence_analyzer(analyzer):
     def __init__(self):
-        print("KL Analyzer Created")
+        lg.debug("KL Analyzer Created")
     
     def _kl_div_scipy(self, p,q):
         p = np.asarray(p, dtype=np.float64)
@@ -54,9 +77,9 @@ class kl_divergence_analyzer(analyzer):
         cf1 = Counter(p)
         cf2 = Counter(q)
         
-        print("Initial Lengths cf1 {0} , cf2 {1}".format(len(cf1),len(cf2)))
-        print(cf1.keys())
-        print(cf2.keys())
+        lg.debug("Initial Lengths cf1 {0} , cf2 {1}".format(len(cf1),len(cf2)))
+        lg.debug(cf1.keys())
+        lg.debug(cf2.keys())
         # Pre-processing for using KL Divergence of Frequency Counters cf1 and cf2
         s = set(cf1.keys())
         s = s.intersection(cf2.keys()) # Collecting all unique elements in cf1 and cf2
@@ -82,9 +105,9 @@ class kl_divergence_analyzer(analyzer):
                 cf2[f] = float(cf2[f]/l2)
             else:
                 cf2.pop(f, None)
-        print("Normalized Lengths cf1 {0} , cf2 {1}".format(len(cf1),len(cf2)))
-        print("Sum CF1 {0}".format(np.sum(list(cf1.values()))))
-        print("Sum CF2 {0}".format(np.sum(list(cf2.values()))))
+        lg.debug("Normalized Lengths cf1 {0} , cf2 {1}".format(len(cf1),len(cf2)))
+        lg.debug("Sum CF1 {0}".format(np.sum(list(cf1.values()))))
+        lg.debug("Sum CF2 {0}".format(np.sum(list(cf2.values()))))
         # print(cf1.keys())
         # print(cf1.values())
         # print(cf2.keys())
@@ -110,7 +133,7 @@ class kl_divergence_analyzer(analyzer):
     def score_with_kl_divergence(self, dataset_id):
         try:
             if not self.dataset.empty: #Do the attribute scoring here
-                print("Starting comparison by KL")
+                lg.debug("Starting comparison by KL")
                 # for col in self.dataset:
                 #     d = pd.Series(self.dataset[col])
                 #     print(d.name)
@@ -119,25 +142,25 @@ class kl_divergence_analyzer(analyzer):
                 #     u_score = self._score_with_uniform(d.copy())
                 #     print("Score with Uniform Distribution = {0}".format(u_score))
                 d = pd.Series(self.dataset['Total'])
-                print(d.name)
+                lg.debug(d.name)
                 n_score = self._score_with_normal(d.copy())
-                print("Score with Normal Distribution = {0}\n".format(n_score))
+                lg.info("Score with Normal Distribution = {0}\n".format(n_score))
                 u_score = self._score_with_uniform(d.copy())
-                print("Score with Uniform Distribution = {0}".format(u_score))
+                lg.info("Score with Uniform Distribution = {0}".format(u_score))
             else:
                 raise ValueError('Non empty Dataset should be attached before starting comparison')
         except AttributeError as ae:
-            print("{0}. Non empty Dataset should be attached before starting comparison".format(ae))
+            lg.critical("{0}. Non empty Dataset should be attached before starting comparison".format(ae))
 
-class log_likelihood_analyzer(analyzer):
+class log_likelihood_analyzer(numerical_analyzer):
     def __init__(self):
-        print("log_likelihood Analyzer Created")
+        lg.debug("log_likelihood Analyzer Created")
         analyzer.__init__(self)
     
     def score_with_log_likelihood(self, bins=200):
         try:
             if not self.dataset.empty: #Do the attribute scoring here
-                print("Starting comparison by log_likelihood")
+                lg.debug("Starting comparison by log_likelihood")
                 for col in self.dataset:
                     # Best holders
                     best_distribution = st.norm
@@ -146,7 +169,7 @@ class log_likelihood_analyzer(analyzer):
 
                     for distribution in self.DISTRIBUTIONS: 
                         data = pd.Series(self.dataset[col])
-                        print("Modelling {0} with {1}".format(data.name, distribution.name))
+                        lg.debug("Modelling {0} with {1}".format(data.name, distribution.name))
 
                         ## CODE FOR DISTRIBUTION FITTING
                         # Get histogram of original data
@@ -181,7 +204,7 @@ class log_likelihood_analyzer(analyzer):
             else:
                 raise ValueError('Non empty Dataset should be attached before starting comparison')
         except AttributeError as ae:
-            print("{0}. Non empty Dataset should be attached before starting comparison".format(ae))
+            lg.critical("{0}. Non empty Dataset should be attached before starting comparison".format(ae))
         #     tb = traceback.format_exc()
         # else:
         #     tb = ""
