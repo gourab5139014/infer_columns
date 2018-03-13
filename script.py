@@ -8,7 +8,7 @@ from analyzers import analyzer
 import logging as lg, sys, traceback
 # import matplotlib
 # import matplotlib.pyplot as plt
-lg.basicConfig(stream=sys.stderr, level=lg.DEBUG)
+lg.basicConfig(stream=sys.stderr, level=lg.INFO)
 
 def get_uniform_distributed_integers(min_value, max_value, total, fliped):
     fake1 = np.linspace(min_value, max_value, total, dtype=int)
@@ -43,7 +43,6 @@ if __name__ == "__main__":
         a = analyzer()
         for d in datasets:
             a.add_dataset(d)
-            # study_dataset_from_file(d)
         a.run()
     except KeyError as ke:
         lg.critical('Need a unique dataset_id')
