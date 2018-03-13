@@ -4,19 +4,36 @@ import scipy.stats as st
 import random
 from collections import Counter
 from math import log
+import csv
+import datetime
+import traceback
 
 class analyzer(): # Contains configuration information common to all analyzers
     
-    DISTRIBUTIONS = [st.uniform, st.norm, st.zipf]
+    # DISTRIBUTIONS = [st.uniform, st.norm, st.zipf]
+    DISTRIBUTIONS = [st.uniform, st.norm]
 
     def __init__(self):
         print("Analyzer Created")
-        self.results_df = pd.DataFrame()
+        # self.results_df = pd.DataFrame()
         self.results = [] # List of tuples (<DatasetId>,<AttributeId>,<ComparedDistribution>,<Divergence>)
 
-    def attach_dataset(self, dt:pd.DataFrame):
+    def attach_dataset(self, dt:pd.DataFrame, dataset_id):
         self.dataset = dt
-        print("Dataset configured")
+        self.dataset_tag = dataset_id
+        print("Dataset {0} configured".format(self.dataset_tag))
+    
+    def save_observation(self, goodness_value, best_dst, column_name, dataset_id):
+        self.results.append((self.dataset_tag, column_name, best_dst, goodness_value))
+    
+    def export_results_to_csv(self, filename_prefix):
+        filename = filename_prefix + datetime.date.today().strftime("%Y%m%d") + ".out"
+        with open(filename,'w') as ofile:
+            csv_out=csv.writer(ofile)
+            # csv_out.writerow(['name','num'])
+            for row in self.results:
+                csv_out.writerow(row)
+
         
 class kl_divergence_analyzer(analyzer):
     def __init__(self):
@@ -90,7 +107,7 @@ class kl_divergence_analyzer(analyzer):
         u = u.round().astype(int)
         return self._my_kl_divergence(dst, u)
 
-    def score_with_kl_divergence(self):
+    def score_with_kl_divergence(self, dataset_id):
         try:
             if not self.dataset.empty: #Do the attribute scoring here
                 print("Starting comparison by KL")
@@ -115,20 +132,46 @@ class kl_divergence_analyzer(analyzer):
 class log_likelihood_analyzer(analyzer):
     def __init__(self):
         print("log_likelihood Analyzer Created")
+        analyzer.__init__(self)
     
-    def score_with_log_likelihood(self):
+    def score_with_log_likelihood(self, bins=200):
         try:
             if not self.dataset.empty: #Do the attribute scoring here
                 print("Starting comparison by log_likelihood")
                 for col in self.dataset:
-                    for dst in self.DISTRIBUTIONS: 
-                        print(dst.name)
-                        d = pd.Series(self.dataset[col])
-                        print(d.name)
-                        n_score = self._score_with_normal(d.copy())
-                        print("Score with Normal Distribution = {0}\n".format(n_score))
-                        u_score = self._score_with_uniform(d.copy())
-                        print("Score with Uniform Distribution = {0}".format(u_score))
+                    # Best holders
+                    best_distribution = st.norm
+                    best_params = (0.0, 1.0)
+                    best_sse = np.inf
+
+                    for distribution in self.DISTRIBUTIONS: 
+                        data = pd.Series(self.dataset[col])
+                        print("Modelling {0} with {1}".format(data.name, distribution.name))
+
+                        ## CODE FOR DISTRIBUTION FITTING
+                        # Get histogram of original data
+                        y, x = np.histogram(data, bins=bins, density=True)
+                        # print("x = {0}".format(x))
+                        x = (x + np.roll(x, -1))[:-1] / 2.0
+
+                        # fit dist to data
+                        params = distribution.fit(data) #TODO Study return parameters for different distributions
+
+                        # Separate parts of parameters
+                        arg = params[:-2]
+                        loc = params[-2]
+                        scale = params[-1]
+
+                        # Calculate fitted PDF and error with fit in distribution
+                        pdf = distribution.pdf(x, loc=loc, scale=scale, *arg)
+                        sse = np.sum(np.power(y - pdf, 2.0))
+
+                        # identify if this distribution is better
+                        if best_sse > sse > 0:
+                            best_distribution = distribution
+                            best_params = params
+                            best_sse = sse
+                    self.save_observation(best_sse, best_distribution.name, col, self.dataset_tag)
                 # d = pd.Series(self.dataset['Total'])
                 # print(d.name)
                 # n_score = self._score_with_normal(d.copy())
@@ -139,3 +182,8 @@ class log_likelihood_analyzer(analyzer):
                 raise ValueError('Non empty Dataset should be attached before starting comparison')
         except AttributeError as ae:
             print("{0}. Non empty Dataset should be attached before starting comparison".format(ae))
+        #     tb = traceback.format_exc()
+        # else:
+        #     tb = ""
+        # finally:
+        #     print(tb)
