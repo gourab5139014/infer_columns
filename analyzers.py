@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_string_dtype
 import scipy.stats as st
 import random
 from collections import Counter
@@ -47,17 +48,21 @@ class analyzer(): # Contains configuration information common to all analyzers
         lg.info('Output written to {0}'.format(filename))
     
     def run(self):
-        lg.debug("Datasets \n{0}".format(self.datasets))
+        # lg.debug("Datasets \n{0}".format(self.datasets))
         results = pd.DataFrame(columns=('dataset_id', 'column_name', 'distribution', 'goodness_value'))
         for d in self.datasets:
             lg.info('Starting analyze dataset {0}'.format(d))
             df = self.datasets[d]
-            for c in df:
+            for c in df: # For each column in Dataset
+                # Some cleaning
+                if(is_string_dtype(df[c])):
+                    df[c] = df[c].apply(lambda x: x.strip().replace(',',''))
+                lg.debug(df[c].dtype)
                 data = pd.Series(df[c])
                 sample = data[0]
                 lg.debug(sample)
                 try:
-                    int(sample)
+                    int(sample) #TODO Use Pandas type transformations here. Refer http://pandas.pydata.org/pandas-docs/version/0.20/generated/pandas.to_numeric.html and https://github.com/justmarkham/pandas-videos/blob/master/pandas_tricks.ipynb
                     lg.debug("{0} is a number".format(sample))
                     duplicate_proportion = ( len(data)-len(data.unique()) ) / len(data)
                     if duplicate_proportion > self.THETA:
