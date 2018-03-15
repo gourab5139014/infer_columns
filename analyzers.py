@@ -85,6 +85,7 @@ class analyzer(): # Contains configuration information common to all analyzers
                 #     df[c] = df[c].apply(lambda x: x.replace('$',''))
                 lg.debug(df[c].dtype)
                 datatype, df[c] = self.infer_data_type(df[c])
+                # lg.debug("Results {0}".format(results))
                 if datatype == self.DATATYPES[0]: # Numerical
                     # Do something
                     lg.debug("Marking {0}".format(self.DATATYPES[0]))
@@ -97,7 +98,8 @@ class analyzer(): # Contains configuration information common to all analyzers
                     # results = results.append([(d, c, self.DATATYPES[1], 1 )])
                 else : # Case for "Other" data type. Always the last listed datatype
                     # Log this column as other
-                    results = results.append([(d, c, self.DATATYPES[-1], 1 )])
+                    r = pd.DataFrame([(d, c, self.DATATYPES[-1], 1)], columns=('dataset_id', 'column_name', 'distribution', 'goodness_value'))
+                    results = results.append(r)
                 # data = pd.Series(df[c])
                 # sample = data[0]
                 # lg.debug(sample)
@@ -114,6 +116,7 @@ class analyzer(): # Contains configuration information common to all analyzers
                 #     # lg.debug('Current collection of results is {0}'.format(results))
                 # except ValueError as ve:
                 #     lg.debug("{0} is NOT a number".format(sample))
+            
             self.export_results_to_csv(results, "Output") 
 
     def _apply_categorical_analyses(self, s:pd.Series, name):
@@ -236,7 +239,7 @@ class log_likelihood_analyzer(numerical_analyzer):
     
     def score_for_series(self, data:pd.Series, dataset_id, bins=200):
         observations = []
-        lg.debug("Scoring {0}".format(data))
+        # lg.debug("Scoring {0}".format(data))
         try:
             lg.debug("Starting scoring {0} by log_likelihood".format(data.name))
             # Best holders initialization
