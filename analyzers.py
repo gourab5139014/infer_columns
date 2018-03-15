@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_string_dtype, is_numeric_dtype
+from pandas.api.types import is_string_dtype, is_numeric_dtype, is_integer_dtype
 import scipy.stats as st
 import random
 from collections import Counter
@@ -45,11 +45,14 @@ class analyzer(): # Contains configuration information common to all analyzers
         inferred_data_type = self.DATATYPES[-1]
         if is_numeric_dtype(s):
             lg.debug("{0} seems to be numeric".format(s.name))
-            lg.debug("{0} unique values among {1} total values".format(s.nunique(), len(s)))
-            unique_proportion = s.nunique()/len(s)
-            if unique_proportion >= self.THETA_THRESHOLD:
-                inferred_data_type = self.DATATYPES[1] #Categorical
-            else:
+            if is_integer_dtype(s):
+                lg.debug("{0} unique values among {1} total values".format(s.nunique(), len(s)))
+                unique_proportion = s.nunique()/len(s)
+                if unique_proportion >= self.THETA_THRESHOLD:
+                    inferred_data_type = self.DATATYPES[1] #Categorical
+                else:
+                    inferred_data_type = self.DATATYPES[0] #Numerical
+            else: # Real numbers
                 inferred_data_type = self.DATATYPES[0] #Numerical
         elif is_string_dtype(s):
             lg.debug("{0} seems to be string".format(s.name))
@@ -60,7 +63,7 @@ class analyzer(): # Contains configuration information common to all analyzers
                 s = s_casted
                 inferred_data_type = self.DATATYPES[0]
             except ValueError as ve:
-                lg.debug("{0} DEFINITELY is to be string".format(s.name)) # Reported as other vy default
+                lg.debug("{0} DEFINITELY is a string".format(s.name)) # Reported as other vy default
             # df[c] = df[c].apply(lambda x: x.strip().replace(',',''))
         return inferred_data_type, s
 
@@ -199,7 +202,7 @@ class log_likelihood_analyzer(numerical_analyzer):
     
     def score_for_series(self, data:pd.Series, dataset_id, bins=200):
         observations = []
-        # lg.debug("Scoring {0}".format(data))
+        lg.debug("Scoring {0}".format(data))
         try:
             lg.debug("Starting scoring {0} by log_likelihood".format(data.name))
             # Best holders initialization
@@ -227,7 +230,7 @@ class log_likelihood_analyzer(numerical_analyzer):
                 # Calculate fitted PDF and error with fit in distribution
                 pdf = distribution.pdf(x, loc=loc, scale=scale, *arg)
                 sse = np.sum(np.power(y - pdf, 2.0))
-
+                # lg.debug("{0}.{1} by {2} = {3}".format(dataset_id, data.name, distribution.name, sse))
                 observations.append((dataset_id, data.name, distribution.name, sse ))
         # else:
         #     raise ValueError('Non empty Dataset should be attached before starting comparison')
