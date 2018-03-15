@@ -12,6 +12,7 @@ import logging as lg
 
 class analyzer(): # Contains configuration information common to all analyzers
     THETA = 0.2 # Threshold percentage of unique values in a number sequence beyond which it would be tagged Categorical
+    DATATYPES = ["Numerical","Categorical", "Other"] # Data types that are inferred
     # DISTRIBUTIONS = [st.uniform, st.norm, st.zipf]
     DISTRIBUTIONS = [st.uniform, st.norm]
 
@@ -47,6 +48,9 @@ class analyzer(): # Contains configuration information common to all analyzers
         df.to_csv(path_or_buf=filename, index=False)
         lg.info('Output written to {0}'.format(filename))
     
+    def infer_data_type(self, s:pd.Series):
+        return self.DATATYPES[-1]
+
     def run(self):
         # lg.debug("Datasets \n{0}".format(self.datasets))
         results = pd.DataFrame(columns=('dataset_id', 'column_name', 'distribution', 'goodness_value'))
@@ -58,22 +62,33 @@ class analyzer(): # Contains configuration information common to all analyzers
                 if(is_string_dtype(df[c])):
                     df[c] = df[c].apply(lambda x: x.strip().replace(',',''))
                 lg.debug(df[c].dtype)
-                data = pd.Series(df[c])
-                sample = data[0]
-                lg.debug(sample)
-                try:
-                    int(sample) #TODO Use Pandas type transformations here. Refer http://pandas.pydata.org/pandas-docs/version/0.20/generated/pandas.to_numeric.html and https://github.com/justmarkham/pandas-videos/blob/master/pandas_tricks.ipynb
-                    lg.debug("{0} is a number".format(sample))
-                    duplicate_proportion = ( len(data)-len(data.unique()) ) / len(data)
-                    if duplicate_proportion > self.THETA:
-                        r = self._apply_categorical_analyses(data, d) # TODO Need to explore more here
-                        results = results.append(r)
-                    else:
-                        r = self._apply_numerical_analyses(data, d)
-                        results = results.append(r)
-                    # lg.debug('Current collection of results is {0}'.format(results))
-                except ValueError as ve:
-                    lg.debug("{0} is NOT a number".format(sample))
+                datatype = self.infer_data_type(df[c])
+                if datatype == self.DATATYPES[0]: # Numerical
+                    # Do something
+                    lg.debug("Marking {0}".format(self.DATATYPES[0]))
+                    r = self._apply_numerical_analyses(pd.Series(df[c]), d)
+                    results = results.append(r)
+                elif datatype == self.DATATYPES[1]: # Categorical
+                    lg.debug("Marking {0}".format(self.DATATYPES[1]))
+                else : # Case for "Other" data type. Always the last listed datatype
+                    # Log this column as other
+                    results = results.append([(d, c, self.DATATYPES[-1], 1 )])
+                # data = pd.Series(df[c])
+                # sample = data[0]
+                # lg.debug(sample)
+                # try:
+                #     int(sample) #TODO Use Pandas type transformations here. Refer http://pandas.pydata.org/pandas-docs/version/0.20/generated/pandas.to_numeric.html and https://github.com/justmarkham/pandas-videos/blob/master/pandas_tricks.ipynb
+                #     lg.debug("{0} is a number".format(sample))
+                #     duplicate_proportion = ( len(data)-len(data.unique()) ) / len(data)
+                #     if duplicate_proportion > self.THETA:
+                #         r = self._apply_categorical_analyses(data, d) # TODO Need to explore more here
+                #         results = results.append(r)
+                #     else:
+                #         r = self._apply_numerical_analyses(data, d)
+                #         results = results.append(r)
+                #     # lg.debug('Current collection of results is {0}'.format(results))
+                # except ValueError as ve:
+                #     lg.debug("{0} is NOT a number".format(sample))
             self.export_results_to_csv(results, "Output") 
 
     def _apply_categorical_analyses(self, s, name):
