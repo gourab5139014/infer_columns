@@ -18,18 +18,6 @@ def get_uniform_distributed_integers(min_value, max_value, total, fliped):
             fake1[i] = np.random.randint(min_value, max_value)
     return fake1
 
-def study_dataset_from_file(d):
-    dt = pd.read_csv(d)
-    # print(pd.Series(dt["Year"]))
-    # TODO Call kl_analyzer here
-    # k = kl_divergence_analyzer()
-    # k.attach_dataset(dt)
-    # k.score_with_kl_divergence()
-    
-    # ll = log_likelihood_analyzer()
-    # ll.attach_dataset(dt, d)
-    # ll.score_with_log_likelihood()
-    # ll.export_results_to_csv(d)
 
 if __name__ == "__main__":
     

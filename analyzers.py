@@ -19,8 +19,6 @@ class analyzer(): # Contains configuration information common to all analyzers
     def __init__(self):
         lg.debug("Analyzer Created")
         self.datasets = {} # (Dataset_tag) -> Dataset
-        # self.results = [] # List of tuples (<DatasetId>,<AttributeId>,<ComparedDistribution>,<Divergence>)
-        # self.results = pd.DataFrame([], columns=('dataset_id', 'column_name', 'distribution', 'goodness_value'))
     
     def add_dataframe(self, dt:pd.DataFrame, dataset_id):        
         if dataset_id in self.datasets:
@@ -35,11 +33,6 @@ class analyzer(): # Contains configuration information common to all analyzers
             raise KeyError('{0} is already present in Datasets')
         else:
             self.add_dataframe(df, dt)
-    
-    # @DeprecationWarning
-    # def save_observation(self, goodness_value, best_dst, column_name, dataset_id):
-    #     lg.debug('Adding {0} to results'.format((dataset_id, column_name, best_dst, goodness_value)))
-    #     self.results.append((dataset_id, column_name, best_dst, goodness_value))
     
     def export_results_to_csv(self, df, filename_prefix):
         # lg.debug('I am exporting {0}'.format(df))
@@ -79,10 +72,6 @@ class analyzer(): # Contains configuration information common to all analyzers
             df = self.datasets[d]
             df = df.dropna(axis=1, how='all') # Drop columns which contain only NaN
             for c in df: # For each column in Dataset
-                # Some cleaning
-                # if(is_string_dtype(df[c])): #TODO Maybe replace this with something faster and smarter?
-                #     df[c] = df[c].apply(lambda x: x.strip().replace(',',''))
-                #     df[c] = df[c].apply(lambda x: x.replace('$',''))
                 lg.debug(df[c].dtype)
                 datatype, df[c] = self.infer_data_type(df[c])
                 # lg.debug("Results {0}".format(results))
@@ -100,22 +89,6 @@ class analyzer(): # Contains configuration information common to all analyzers
                     # Log this column as other
                     r = pd.DataFrame([(d, c, self.DATATYPES[-1], 1)], columns=('dataset_id', 'column_name', 'distribution', 'goodness_value'))
                     results = results.append(r)
-                # data = pd.Series(df[c])
-                # sample = data[0]
-                # lg.debug(sample)
-                # try:
-                #     int(sample) #TODO Use Pandas type transformations here. Refer http://pandas.pydata.org/pandas-docs/version/0.20/generated/pandas.to_numeric.html and https://github.com/justmarkham/pandas-videos/blob/master/pandas_tricks.ipynb
-                #     lg.debug("{0} is a number".format(sample))
-                #     duplicate_proportion = ( len(data)-len(data.unique()) ) / len(data)
-                #     if duplicate_proportion > self.THETA:
-                #         r = self._apply_categorical_analyses(data, d) # TODO Need to explore more here
-                #         results = results.append(r)
-                #     else:
-                #         r = self._apply_numerical_analyses(data, d)
-                #         results = results.append(r)
-                #     # lg.debug('Current collection of results is {0}'.format(results))
-                # except ValueError as ve:
-                #     lg.debug("{0} is NOT a number".format(sample))
             
             self.export_results_to_csv(results, "Output") 
 
@@ -125,7 +98,6 @@ class analyzer(): # Contains configuration information common to all analyzers
     def _apply_numerical_analyses(self, s, name):
         lla = log_likelihood_analyzer()
         r = lla.score_for_series(s, name)
-        # lg.debug('Returning from _apply_numerical_analyses {0}'.format(r))
         return r
                     
 
@@ -188,11 +160,6 @@ class kl_divergence_analyzer(analyzer):
         lg.debug("Normalized Lengths cf1 {0} , cf2 {1}".format(len(cf1),len(cf2)))
         lg.debug("Sum CF1 {0}".format(np.sum(list(cf1.values()))))
         lg.debug("Sum CF2 {0}".format(np.sum(list(cf2.values()))))
-        # print(cf1.keys())
-        # print(cf1.values())
-        # print(cf2.keys())
-        # print(cf2.values())
-         
         lib_val = self._kl_div_scipy(list(cf1.values()),list(cf2.values()))
         return lib_val
     
@@ -214,13 +181,6 @@ class kl_divergence_analyzer(analyzer):
         try:
             if not self.dataset.empty: #Do the attribute scoring here
                 lg.debug("Starting comparison by KL")
-                # for col in self.dataset:
-                #     d = pd.Series(self.dataset[col])
-                #     print(d.name)
-                #     n_score = self._score_with_normal(d.copy())
-                #     print("Score with Normal Distribution = {0}\n".format(n_score))
-                #     u_score = self._score_with_uniform(d.copy())
-                #     print("Score with Uniform Distribution = {0}".format(u_score))
                 d = pd.Series(self.dataset['Total'])
                 lg.debug(d.name)
                 n_score = self._score_with_normal(d.copy())
@@ -268,14 +228,7 @@ class log_likelihood_analyzer(numerical_analyzer):
                 pdf = distribution.pdf(x, loc=loc, scale=scale, *arg)
                 sse = np.sum(np.power(y - pdf, 2.0))
 
-                # self.save_observation(sse, distribution.name, data.name, dataset_id)
                 observations.append((dataset_id, data.name, distribution.name, sse ))
-                # identify if this distribution is better
-                # if best_sse > sse > 0:
-                #     best_distribution = distribution
-                #     best_params = params
-                #     best_sse = sse
-                # self.save_observation(best_sse, best_distribution.name, col, self.dataset_tag)
         # else:
         #     raise ValueError('Non empty Dataset should be attached before starting comparison')
         except AttributeError as ae:
