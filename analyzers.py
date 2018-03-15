@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_string_dtype
+from pandas.api.types import is_string_dtype, is_numeric_dtype
 import scipy.stats as st
 import random
 from collections import Counter
@@ -11,7 +11,7 @@ import traceback
 import logging as lg
 
 class analyzer(): # Contains configuration information common to all analyzers
-    THETA = 0.2 # Threshold percentage of unique values in a number sequence beyond which it would be tagged Categorical
+    THETA_THRESHOLD = 0.5 # Threshold percentage of unique values in a number sequence beyond which it would be tagged Categorical
     DATATYPES = ["Numerical","Categorical", "Other"] # Data types that are inferred
     # DISTRIBUTIONS = [st.uniform, st.norm, st.zipf]
     DISTRIBUTIONS = [st.uniform, st.norm]
@@ -49,7 +49,27 @@ class analyzer(): # Contains configuration information common to all analyzers
         lg.info('Output written to {0}'.format(filename))
     
     def infer_data_type(self, s:pd.Series):
-        return self.DATATYPES[-1]
+        inferred_data_type = self.DATATYPES[-1]
+        if is_numeric_dtype(s):
+            lg.debug("{0} seems to be numeric".format(s.name))
+            lg.debug("{0} unique values among {1} total values".format(s.nunique(), len(s)))
+            unique_proportion = s.nunique()/len(s)
+            if unique_proportion >= self.THETA_THRESHOLD:
+                inferred_data_type = self.DATATYPES[1] #Categorical
+            else:
+                inferred_data_type = self.DATATYPES[0] #Numerical
+        elif is_string_dtype(s):
+            lg.debug("{0} seems to be string".format(s.name))
+            t = s.copy().apply(lambda x: x.strip().replace(',',''))
+            t = t.apply(lambda x: x.replace('$',''))
+            try:
+                s_casted = pd.to_numeric(t)
+                s = s_casted
+                inferred_data_type = self.DATATYPES[0]
+            except ValueError as ve:
+                lg.debug("{0} DEFINITELY is to be string".format(s.name)) # Reported as other vy default
+            # df[c] = df[c].apply(lambda x: x.strip().replace(',',''))
+        return inferred_data_type, s
 
     def run(self):
         # lg.debug("Datasets \n{0}".format(self.datasets))
@@ -57,12 +77,14 @@ class analyzer(): # Contains configuration information common to all analyzers
         for d in self.datasets:
             lg.info('Starting analyze dataset {0}'.format(d))
             df = self.datasets[d]
+            df = df.dropna(axis=1, how='all') # Drop columns which contain only NaN
             for c in df: # For each column in Dataset
                 # Some cleaning
-                if(is_string_dtype(df[c])):
-                    df[c] = df[c].apply(lambda x: x.strip().replace(',',''))
+                # if(is_string_dtype(df[c])): #TODO Maybe replace this with something faster and smarter?
+                #     df[c] = df[c].apply(lambda x: x.strip().replace(',',''))
+                #     df[c] = df[c].apply(lambda x: x.replace('$',''))
                 lg.debug(df[c].dtype)
-                datatype = self.infer_data_type(df[c])
+                datatype, df[c] = self.infer_data_type(df[c])
                 if datatype == self.DATATYPES[0]: # Numerical
                     # Do something
                     lg.debug("Marking {0}".format(self.DATATYPES[0]))
@@ -70,6 +92,9 @@ class analyzer(): # Contains configuration information common to all analyzers
                     results = results.append(r)
                 elif datatype == self.DATATYPES[1]: # Categorical
                     lg.debug("Marking {0}".format(self.DATATYPES[1]))
+                    r = self._apply_categorical_analyses(df[c], d) # TODO Need to explore more here
+                    results = results.append(r)
+                    # results = results.append([(d, c, self.DATATYPES[1], 1 )])
                 else : # Case for "Other" data type. Always the last listed datatype
                     # Log this column as other
                     results = results.append([(d, c, self.DATATYPES[-1], 1 )])
@@ -91,7 +116,7 @@ class analyzer(): # Contains configuration information common to all analyzers
                 #     lg.debug("{0} is NOT a number".format(sample))
             self.export_results_to_csv(results, "Output") 
 
-    def _apply_categorical_analyses(self, s, name):
+    def _apply_categorical_analyses(self, s:pd.Series, name):
         return pd.DataFrame([(name, s.name, 'Categorical', 1)], columns=('dataset_id', 'column_name', 'distribution', 'goodness_value'))
     
     def _apply_numerical_analyses(self, s, name):
@@ -211,7 +236,7 @@ class log_likelihood_analyzer(numerical_analyzer):
     
     def score_for_series(self, data:pd.Series, dataset_id, bins=200):
         observations = []
-        
+        lg.debug("Scoring {0}".format(data))
         try:
             lg.debug("Starting scoring {0} by log_likelihood".format(data.name))
             # Best holders initialization
