@@ -19,15 +19,21 @@ def get_uniform_distributed_integers(min_value, max_value, total, fliped):
     return fake1
 
 
-if __name__ == "__main__":
-    
+if __name__ == "__main__":    
+    # a = analyzer()
+    # datasets = []
     # for filename in glob.glob('data/*.csv'):
     #     print(filename)
-    #     with open(filename) as f:
-    #         study_dataset_from_file(f)
-    # datasets = [ './data/accident_fatalities_table_cleaned.csv','./data/Ag_On_Slopes.csv']
-    datasets = [ './data/Ag_On_Slopes.csv']
-    # datasets = []
+    #     # with open(filename) as f:
+    #     #     d = pd.read_csv(f)
+    #     a.add_dataset(filename)
+    # a.run()
+
+    datasets = [ './data/accident_fatalities_table_cleaned.csv','./data/Ag_On_Slopes.csv','./data/Ag_P_Balance.csv','./data/agw_demand_20160428.csv','./data/AMAD11_20160429.csv','./data/AvgPrecip_NHDPv2_WBD.csv','./data/BigGameHunting_RecreationDemand.csv','./data/biodiversity_SE_NHDPv2_WBD.csv', './data/biodiversity_SW_NHDPv2_WBD.csv',  './data/biomass_NHDPv2_WBD.csv']
+    # datasets = [ './data/Bird_National_Metrics_20160429.csv']
+    # datasets = [ './data/recs2009_public.csv']
+    
+
     try:
         a = analyzer()
         for d in datasets:
@@ -35,6 +41,6 @@ if __name__ == "__main__":
         a.run()
     except KeyError as ke:
         lg.critical('Need a unique dataset_id')
-        # print("S**t happened")
-    # except:
-    #     traceback.print_stack()
+        print("S**t happened")
+    except:
+        traceback.print_exc()

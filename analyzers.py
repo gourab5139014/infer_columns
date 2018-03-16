@@ -75,25 +75,28 @@ class analyzer(): # Contains configuration information common to all analyzers
             df = self.datasets[d]
             df = df.dropna(axis=1, how='all') # Drop columns which contain only NaN
             for c in df: # For each column in Dataset
-                lg.debug(df[c].dtype)
-                datatype, df[c] = self.infer_data_type(df[c])
-                # lg.debug("Results {0}".format(results))
-                if datatype == self.DATATYPES[0]: # Numerical
-                    # Do something
-                    lg.debug("Marking {0}".format(self.DATATYPES[0]))
-                    r = self._apply_numerical_analyses(pd.Series(df[c]), d)
-                    results = results.append(r)
-                elif datatype == self.DATATYPES[1]: # Categorical
-                    lg.debug("Marking {0}".format(self.DATATYPES[1]))
-                    r = self._apply_categorical_analyses(df[c], d) # TODO Need to explore more here
-                    results = results.append(r)
-                    # results = results.append([(d, c, self.DATATYPES[1], 1 )])
-                else : # Case for "Other" data type. Always the last listed datatype
-                    # Log this column as other
-                    r = pd.DataFrame([(d, c, self.DATATYPES[-1], 1)], columns=('dataset_id', 'column_name', 'distribution', 'goodness_value'))
-                    results = results.append(r)
+                try :
+                    lg.debug(df[c].dtype)
+                    datatype, df[c] = self.infer_data_type(df[c])
+                    # lg.debug("Results {0}".format(results))
+                    if datatype == self.DATATYPES[0]: # Numerical
+                        # Do something
+                        lg.debug("Marking {0}".format(self.DATATYPES[0]))
+                        r = self._apply_numerical_analyses(pd.Series(df[c]), d)
+                        results = results.append(r)
+                    elif datatype == self.DATATYPES[1]: # Categorical
+                        lg.debug("Marking {0}".format(self.DATATYPES[1]))
+                        r = self._apply_categorical_analyses(df[c], d) # TODO Need to explore more here
+                        results = results.append(r)
+                        # results = results.append([(d, c, self.DATATYPES[1], 1 )])
+                    else : # Case for "Other" data type. Always the last listed datatype
+                        # Log this column as other
+                        r = pd.DataFrame([(d, c, self.DATATYPES[-1], 1)], columns=('dataset_id', 'column_name', 'distribution', 'goodness_value'))
+                        results = results.append(r)
+                except :
+                    traceback.print_exc()
             
-            self.export_results_to_csv(results, "Output") 
+            self.export_results_to_csv(results, "ConsolidateOP") 
 
     def _apply_categorical_analyses(self, s:pd.Series, name):
         return pd.DataFrame([(name, s.name, 'Categorical', 1)], columns=('dataset_id', 'column_name', 'distribution', 'goodness_value'))
@@ -202,7 +205,7 @@ class log_likelihood_analyzer(numerical_analyzer):
     
     def score_for_series(self, data:pd.Series, dataset_id, bins=200):
         observations = []
-        lg.debug("Scoring {0}".format(data))
+        # lg.debug("Scoring {0}".format(data))
         try:
             lg.debug("Starting scoring {0} by log_likelihood".format(data.name))
             # Best holders initialization
