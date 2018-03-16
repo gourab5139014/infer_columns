@@ -8,7 +8,12 @@ from math import log
 import csv
 import datetime
 import traceback
-import logging as lg
+import logging, logging.config
+
+logging.config.fileConfig('logging.conf')
+lg = logging.getLogger("analyzer")
+
+REPORTING_SCHEMA = ('dataset_id', 'column_name', 'distribution', 'rms_normed', 'y_mean')
 
 class analyzer(): # Contains configuration information common to all analyzers
     THETA_THRESHOLD = 0.5 # Threshold percentage of unique values in a number sequence beyond which it would be tagged Categorical
@@ -69,7 +74,7 @@ class analyzer(): # Contains configuration information common to all analyzers
 
     def run(self):
         # lg.debug("Datasets \n{0}".format(self.datasets))
-        results = pd.DataFrame(columns=('dataset_id', 'column_name', 'distribution', 'goodness_value', 'y_mean'))
+        results = pd.DataFrame(columns=REPORTING_SCHEMA)
         for d in self.datasets:
             lg.info('Starting analyze dataset {0}'.format(d))
             df = self.datasets[d]
@@ -91,7 +96,7 @@ class analyzer(): # Contains configuration information common to all analyzers
                         # results = results.append([(d, c, self.DATATYPES[1], 1 )])
                     else : # Case for "Other" data type. Always the last listed datatype
                         # Log this column as other
-                        r = pd.DataFrame([(d, c, self.DATATYPES[-1], 1)], columns=('dataset_id', 'column_name', 'distribution', 'goodness_value'))
+                        r = pd.DataFrame([(d, c, self.DATATYPES[-1], 1, 0)], columns=REPORTING_SCHEMA)
                         results = results.append(r)
                 except :
                     traceback.print_exc()
@@ -99,7 +104,7 @@ class analyzer(): # Contains configuration information common to all analyzers
             self.export_results_to_csv(results, "ConsolidateOP") 
 
     def _apply_categorical_analyses(self, s:pd.Series, name):
-        return pd.DataFrame([(name, s.name, 'Categorical', 1)], columns=('dataset_id', 'column_name', 'distribution', 'goodness_value'))
+        return pd.DataFrame([(name, s.name, 'Categorical', 1, 0)], columns=REPORTING_SCHEMA)
     
     def _apply_numerical_analyses(self, s, name):
         lla = log_likelihood_analyzer()
@@ -235,8 +240,8 @@ class log_likelihood_analyzer(numerical_analyzer):
                 pdf = distribution.pdf(x, loc=loc, scale=scale, *arg)
                 sse = np.sum(np.power(y - pdf, 2.0))
                 data_mean = np.mean(data)
-                rms = np.sqrt(sse) / data_mean
-
+                rms = np.sqrt(sse) / max(data_mean ,(np.max(data) - np.min(data)))
+                # rms = np.sqrt(sse) / (np.max(data) - np.min(data))
                 lg.debug("{0}.{1} by {2} = {3}".format(dataset_id, data.name, distribution.name, rms))
                 observations.append((dataset_id, data.name, distribution.name, rms , data_mean))
                 # observations.append((dataset_id, data.name, distribution.name, sse ))
@@ -244,60 +249,5 @@ class log_likelihood_analyzer(numerical_analyzer):
         #     raise ValueError('Non empty Dataset should be attached before starting comparison')
         except AttributeError as ae:
             lg.critical("{0}. {1}".format(ae, traceback.format_exc()))
-        observations_df = pd.DataFrame(observations, columns=('dataset_id', 'column_name', 'distribution', 'goodness_value', 'y_mean')) # Consistent with analyzer.results schema
+        observations_df = pd.DataFrame(observations, columns=(REPORTING_SCHEMA))
         return observations_df
-
-    @DeprecationWarning
-    def _score_with_log_likelihood(self, bins=200):
-        try:
-            if not self.dataset.empty: #Do the attribute scoring here
-                lg.debug("Starting comparison by log_likelihood")
-                for col in self.dataset:
-                    # Best holders
-                    best_distribution = st.norm
-                    best_params = (0.0, 1.0)
-                    best_sse = np.inf
-
-                    for distribution in self.DISTRIBUTIONS: 
-                        data = pd.Series(self.dataset[col])
-                        lg.debug("Modelling {0} with {1}".format(data.name, distribution.name))
-
-                        ## CODE FOR DISTRIBUTION FITTING
-                        # Get histogram of original data
-                        y, x = np.histogram(data, bins=bins, density=True)
-                        # print("x = {0}".format(x))
-                        x = (x + np.roll(x, -1))[:-1] / 2.0
-
-                        # fit dist to data
-                        params = distribution.fit(data) #TODO Study return parameters for different distributions
-
-                        # Separate parts of parameters
-                        arg = params[:-2]
-                        loc = params[-2]
-                        scale = params[-1]
-
-                        # Calculate fitted PDF and error with fit in distribution
-                        pdf = distribution.pdf(x, loc=loc, scale=scale, *arg)
-                        sse = np.sum(np.power(y - pdf, 2.0))
-
-                        # identify if this distribution is better
-                        if best_sse > sse > 0:
-                            best_distribution = distribution
-                            best_params = params
-                            best_sse = sse
-                    self.save_observation(best_sse, best_distribution.name, col, self.dataset_tag)
-                # d = pd.Series(self.dataset['Total'])
-                # print(d.name)
-                # n_score = self._score_with_normal(d.copy())
-                # print("Score with Normal Distribution = {0}\n".format(n_score))
-                # u_score = self._score_with_uniform(d.copy())
-                # print("Score with Uniform Distribution = {0}".format(u_score))
-            else:
-                raise ValueError('Non empty Dataset should be attached before starting comparison')
-        except AttributeError as ae:
-            lg.critical("{0}. Non empty Dataset should be attached before starting comparison".format(ae))
-        #     tb = traceback.format_exc()
-        # else:
-        #     tb = ""
-        # finally:
-        #     print(tb)
