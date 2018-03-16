@@ -8,7 +8,7 @@ from analyzers import analyzer
 import logging as lg, sys, traceback
 # import matplotlib
 # import matplotlib.pyplot as plt
-lg.basicConfig(stream=sys.stderr, level=lg.DEBUG)
+lg.basicConfig(stream=sys.stderr, level=lg.INFO)
 
 def get_uniform_distributed_integers(min_value, max_value, total, fliped):
     fake1 = np.linspace(min_value, max_value, total, dtype=int)
@@ -17,7 +17,6 @@ def get_uniform_distributed_integers(min_value, max_value, total, fliped):
         if(i in replace_at):
             fake1[i] = np.random.randint(min_value, max_value)
     return fake1
-
 
 if __name__ == "__main__":    
     # a = analyzer()
@@ -29,9 +28,9 @@ if __name__ == "__main__":
     #     a.add_dataset(filename)
     # a.run()
 
-    datasets = [ './data/accident_fatalities_table_cleaned.csv','./data/Ag_On_Slopes.csv','./data/Ag_P_Balance.csv','./data/agw_demand_20160428.csv','./data/AMAD11_20160429.csv','./data/AvgPrecip_NHDPv2_WBD.csv','./data/BigGameHunting_RecreationDemand.csv','./data/biodiversity_SE_NHDPv2_WBD.csv', './data/biodiversity_SW_NHDPv2_WBD.csv',  './data/biomass_NHDPv2_WBD.csv']
+    # datasets = [ './data/accident_fatalities_table_cleaned.csv','./data/Ag_On_Slopes.csv','./data/Ag_P_Balance.csv','./data/agw_demand_20160428.csv','./data/AMAD11_20160429.csv','./data/AvgPrecip_NHDPv2_WBD.csv','./data/BigGameHunting_RecreationDemand.csv','./data/biodiversity_SE_NHDPv2_WBD.csv', './data/biodiversity_SW_NHDPv2_WBD.csv',  './data/biomass_NHDPv2_WBD.csv', './data/Bird_National_Metrics_20160429.csv']
     # datasets = [ './data/Bird_National_Metrics_20160429.csv']
-    # datasets = [ './data/recs2009_public.csv']
+    datasets = [ './data/accident_fatalities_table_cleaned.csv']
     
 
     try:
@@ -41,6 +40,6 @@ if __name__ == "__main__":
         a.run()
     except KeyError as ke:
         lg.critical('Need a unique dataset_id')
-        print("S**t happened")
-    except:
-        traceback.print_exc()
+        
+
+    traceback.print_exc()

@@ -69,7 +69,7 @@ class analyzer(): # Contains configuration information common to all analyzers
 
     def run(self):
         # lg.debug("Datasets \n{0}".format(self.datasets))
-        results = pd.DataFrame(columns=('dataset_id', 'column_name', 'distribution', 'goodness_value'))
+        results = pd.DataFrame(columns=('dataset_id', 'column_name', 'distribution', 'goodness_value', 'y_mean'))
         for d in self.datasets:
             lg.info('Starting analyze dataset {0}'.format(d))
             df = self.datasets[d]
@@ -214,11 +214,12 @@ class log_likelihood_analyzer(numerical_analyzer):
             best_sse = np.inf
 
             for distribution in self.DISTRIBUTIONS: 
-                lg.info("Modelling {0} with {1}".format(data.name, distribution.name))
+                lg.info("Modelling {0}({1}) with {2}".format(data.name, len(data), distribution.name))
 
                 ## CODE FOR DISTRIBUTION FITTING
                 # Get histogram of original data
-                y, x = np.histogram(data, bins=bins, density=True)
+                y, x = np.histogram(data, bins=bins, density=False)
+                # lg.debug("y = {0}".format(y))
                 # print("x = {0}".format(x))
                 x = (x + np.roll(x, -1))[:-1] / 2.0
 
@@ -233,13 +234,17 @@ class log_likelihood_analyzer(numerical_analyzer):
                 # Calculate fitted PDF and error with fit in distribution
                 pdf = distribution.pdf(x, loc=loc, scale=scale, *arg)
                 sse = np.sum(np.power(y - pdf, 2.0))
-                # lg.debug("{0}.{1} by {2} = {3}".format(dataset_id, data.name, distribution.name, sse))
-                observations.append((dataset_id, data.name, distribution.name, sse ))
+                data_mean = np.mean(data)
+                rms = np.sqrt(sse) / data_mean
+
+                lg.debug("{0}.{1} by {2} = {3}".format(dataset_id, data.name, distribution.name, rms))
+                observations.append((dataset_id, data.name, distribution.name, rms , data_mean))
+                # observations.append((dataset_id, data.name, distribution.name, sse ))
         # else:
         #     raise ValueError('Non empty Dataset should be attached before starting comparison')
         except AttributeError as ae:
             lg.critical("{0}. {1}".format(ae, traceback.format_exc()))
-        observations_df = pd.DataFrame(observations, columns=('dataset_id', 'column_name', 'distribution', 'goodness_value')) # Consistent with analyzer.results schema
+        observations_df = pd.DataFrame(observations, columns=('dataset_id', 'column_name', 'distribution', 'goodness_value', 'y_mean')) # Consistent with analyzer.results schema
         return observations_df
 
     @DeprecationWarning
