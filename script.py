@@ -10,19 +10,6 @@ import sys, traceback
 # import matplotlib
 # import matplotlib.pyplot as plt
 
-# START LOGGER CONFIGURATION
-# lg = logging.getLogger('loki.main')
-# lg.setLevel(logging.DEBUG)
-# fh = logging.FileHandler('loki-debug.log')
-# fh.setLevel(logging.DEBUG)
-# ch = logging.StreamHandler()
-# ch.setLevel(logging.ERROR)
-# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# ch.setFormatter(formatter)
-# fh.setFormatter(formatter)
-# lg.addHandler(fh)
-# lg.addHandler(ch)
-# END LOGGER CONFIGURATION
 
 logging.config.fileConfig('logging.conf')
 lg = logging.getLogger("loki")
@@ -38,7 +25,7 @@ def get_uniform_distributed_integers(min_value, max_value, total, fliped):
 if __name__ == "__main__":    
     a = analyzer()
     datasets = []
-    for filename in glob.glob('data_test/*.csv'):
+    for filename in glob.glob('data/*.csv'):
         print(filename)
         # with open(filename) as f:
         #     d = pd.read_csv(f)
