@@ -76,7 +76,7 @@ class analyzer(): # Contains configuration information common to all analyzers
         # lg.debug("Datasets \n{0}".format(self.datasets))
         results = pd.DataFrame(columns=REPORTING_SCHEMA)
         for d in self.datasets:
-            lg.info('Starting analyze dataset {0}'.format(d))
+            lg.info('Analyzing dataset {0}'.format(d))
             df = self.datasets[d]
             df = df.dropna(axis=1, how='all') # Drop columns which contain only NaN
             for c in df: # For each column in Dataset
@@ -99,9 +99,9 @@ class analyzer(): # Contains configuration information common to all analyzers
                         r = pd.DataFrame([(d, c, self.DATATYPES[-1], 1, 0)], columns=REPORTING_SCHEMA)
                         results = results.append(r)
                 except :
-                    traceback.print_exc()
+                    lg.exception(traceback.print_exc())
             
-            self.export_results_to_csv(results, "ConsolidateOP") 
+        self.export_results_to_csv(results, "./outputs/ConsolidateOP") 
 
     def _apply_categorical_analyses(self, s:pd.Series, name):
         return pd.DataFrame([(name, s.name, 'Categorical', 1, 0)], columns=REPORTING_SCHEMA)

@@ -27,8 +27,6 @@ if __name__ == "__main__":
     datasets = []
     for filename in glob.glob('data/*.csv'):
         print(filename)
-        # with open(filename) as f:
-        #     d = pd.read_csv(f)
         a.add_dataset(filename)
     a.run()
 
@@ -42,4 +40,5 @@ if __name__ == "__main__":
     #         a.add_dataset(d)
     #     a.run()
     # except KeyError as ke:
-    #     lg.error('Need a unique dataset_id')       
+    #     lg.error('Need a unique dataset_id')    
+   
