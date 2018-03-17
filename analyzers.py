@@ -240,7 +240,7 @@ class log_likelihood_analyzer(numerical_analyzer):
                 pdf = distribution.pdf(x, loc=loc, scale=scale, *arg)
                 sse = np.sum(np.power(y - pdf, 2.0))
                 data_mean = np.mean(data)
-                rms = np.sqrt(sse) / max(data_mean ,(np.max(data) - np.min(data)))
+                rms = np.sqrt(sse) / max(abs(data_mean) , abs(np.max(data) - np.min(data)))
                 # rms = np.sqrt(sse) / (np.max(data) - np.min(data))
                 lg.debug("{0}.{1} by {2} = {3}".format(dataset_id, data.name, distribution.name, rms))
                 observations.append((dataset_id, data.name, distribution.name, rms , data_mean))
