@@ -17,6 +17,7 @@ REPORTING_SCHEMA = ('dataset_id', 'column_name', 'distribution', 'rms_normed', '
 
 class analyzer(): # Contains configuration information common to all analyzers
     THETA_THRESHOLD = 0.5 # Threshold percentage of unique values in a number sequence beyond which it would be tagged Categorical
+    
     DATATYPES = ["Numerical","Categorical", "Other"] # Data types that are inferred
     # DISTRIBUTIONS = [st.uniform, st.norm, st.zipf]
     DISTRIBUTIONS = [st.uniform, st.norm]
@@ -61,15 +62,21 @@ class analyzer(): # Contains configuration information common to all analyzers
                 inferred_data_type = self.DATATYPES[0] #Numerical
         elif is_string_dtype(s):
             lg.debug("{0} seems to be string".format(s.name))
-            t = s.copy().apply(lambda x: x.strip().replace(',',''))
-            t = t.apply(lambda x: x.replace('$',''))
             try:
+                t = s.copy().apply(lambda x: x.strip().replace(',',''))
+                t = t.apply(lambda x: x.replace('$',''))
                 s_casted = pd.to_numeric(t)
                 s = s_casted
                 inferred_data_type = self.DATATYPES[0]
             except ValueError as ve:
                 lg.debug("{0} DEFINITELY is a string".format(s.name)) # Reported as other vy default
+            except AttributeError as ae: # Pandas incorrectly inferrs column type to be object whereas it is numeric
+                t = pd.to_numeric(s, errors='coerce')
+                s = t.dropna()
+                lg.debug("{0} invalid values in {1}".format(s.isnull().sum(), s.name))
+                inferred_data_type = self.DATATYPES[0]
             # df[c] = df[c].apply(lambda x: x.strip().replace(',',''))
+        lg.debug("Marking {1} as {0}".format(inferred_data_type, s.name))
         return inferred_data_type, s
 
     def run(self):
@@ -82,16 +89,18 @@ class analyzer(): # Contains configuration information common to all analyzers
             for c in df: # For each column in Dataset
                 try :
                     lg.debug(df[c].dtype)
-                    datatype, df[c] = self.infer_data_type(df[c])
+                    datatype, t = self.infer_data_type(df[c])
                     # lg.debug("Results {0}".format(results))
                     if datatype == self.DATATYPES[0]: # Numerical
                         # Do something
                         lg.debug("Marking {0}".format(self.DATATYPES[0]))
-                        r = self._apply_numerical_analyses(pd.Series(df[c]), d)
+                        # r = self._apply_numerical_analyses(pd.Series(df[c]), d)
+                        r = self._apply_numerical_analyses(pd.Series(t), d)
                         results = results.append(r)
                     elif datatype == self.DATATYPES[1]: # Categorical
                         lg.debug("Marking {0}".format(self.DATATYPES[1]))
-                        r = self._apply_categorical_analyses(df[c], d) # TODO Need to explore more here
+                        # r = self._apply_categorical_analyses(df[c], d) # TODO Need to explore more here
+                        r = self._apply_categorical_analyses(t, d) # TODO Need to explore more here
                         results = results.append(r)
                         # results = results.append([(d, c, self.DATATYPES[1], 1 )])
                     else : # Case for "Other" data type. Always the last listed datatype
@@ -106,9 +115,10 @@ class analyzer(): # Contains configuration information common to all analyzers
     def _apply_categorical_analyses(self, s:pd.Series, name):
         return pd.DataFrame([(name, s.name, 'Categorical', 1, 0)], columns=REPORTING_SCHEMA)
     
-    def _apply_numerical_analyses(self, s, name):
+    def _apply_numerical_analyses(self, s, dataset_name):
         lla = log_likelihood_analyzer()
-        r = lla.score_for_series(s, name)
+        lg.debug("{0} invalid values in {1}".format(s.isnull().sum(), s.name))
+        r = lla.score_for_series(s, dataset_name)
         return r
                     
 
