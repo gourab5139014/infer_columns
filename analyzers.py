@@ -22,7 +22,8 @@ class analyzer(): # Contains configuration information common to all analyzers
     
     DATATYPES = ["Numerical","Categorical", "Other"] # Data types that are inferred
     # DISTRIBUTIONS = [st.uniform, st.norm, st.zipf]
-    DISTRIBUTIONS = [st.uniform, st.norm]
+    DISTRIBUTIONS = [st.norm, st.uniform]
+    DISTRIBUTION_NAMES = ["norm","uniform"] # Numerical data types that are inferred
 
     def __init__(self):
         lg.debug("Analyzer Created")
@@ -112,7 +113,7 @@ class analyzer(): # Contains configuration information common to all analyzers
                 except :
                     lg.exception(traceback.print_exc())
             
-        # self.export_results_to_csv(results, "./outputs/ConsolidateOP")
+        self.export_results_to_csv(results, "./outputs/ConsolidateOP")
         self._export_comparisons_to_csv(results, "./outputs/ColumnSimilarities") 
             
     def _lexicographical_distance(self, rdf, i, j): #TODO For Poonam
@@ -138,9 +139,8 @@ class analyzer(): # Contains configuration information common to all analyzers
                     rdf_j = rdf.iloc[[j]]
                     distri1 = rdf_i['distribution'].item()
                     distri2 = rdf_i['distribution'].item()
-                    print("rdf[{0}] = {1} AND rdf[{2}]={3}".format(i, distri1, j, distri2))
-                    if(distri1 == self.DATATYPES[0] and distri2 == self.DATATYPES[1]): # Both attributes are Numerical
-                    # if(True):
+                    # print("rdf[{0}] = {1} AND rdf[{2}]={3}".format(i, distri1, j, distri2))
+                    if(distri1 in self.DISTRIBUTION_NAMES and distri2 in self.DISTRIBUTION_NAMES): # Both attributes are Numerical
                         d1_name = rdf_i['dataset_id'].item()
                         c1_name = rdf_i['column_name'].item()
                         d1 = self.datasets[d1_name]

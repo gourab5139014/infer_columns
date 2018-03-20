@@ -14,6 +14,8 @@ import logging, logging.config
 logging.config.fileConfig('logging.conf')
 lg = logging.getLogger("analyzer")
 
+DISTRIBUTION_NAMES = ["norm","uniform"] # Numerical data types that are inferred
+
 class kl_divergence_analyzer():
     def __init__(self):
         lg.debug("KL Analyzer Created")
@@ -98,7 +100,28 @@ class kl_divergence_analyzer():
             lg.critical("{0}. Non empty Dataset should be attached before starting comparison".format(ae))
 
     def kl_div(self, p: pd.Series, distri_p, q:pd.Series, distri_q):
-        return 0.5
+        t1 = pd.to_numeric(p, errors='coerce')
+        t2 = pd.to_numeric(q, errors='coerce')
+        t1 = t1[~t1.isnull()]
+        t2 = t2[~t2.isnull()]
+        
+        mu1, sigma1 = np.mean(t1), np.std(t1)
+        lower1, upper1 = np.min(t1), np.max(t1)
+        if distri_p == DISTRIBUTION_NAMES[0]: # Normal
+            d1 = st.norm(mu1, sigma1)
+        else: # Uniform
+            d1 =st.uniform(loc = lower1, scale = upper1)
+        mu2, sigma2 = np.mean(t2), np.std(t2)
+        lower2, upper2 = np.min(t2), np.max(t2)
+        if distri_q == DISTRIBUTION_NAMES[0]: # Normal
+            d2 = st.norm(mu2, sigma2)
+        else: # Uniform
+            d2 =st.uniform(loc = lower2, scale = upper2)
+        
+        # domain to evaluate PDF on
+        X = np.linspace(min(lower1, lower2), max(upper1, upper2), max(len(t1), len(t2)))
+        e = st.entropy(d1.pdf(X), d2.pdf(X))
+        return e
 
     def normalized_kl_div(self, p: pd.Series, distri_p, q:pd.Series, distri_q):
         k = self.kl_div(p, distri_p, q, distri_q)
