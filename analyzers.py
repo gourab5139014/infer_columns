@@ -17,7 +17,7 @@ logging.config.fileConfig('logging.conf')
 lg = logging.getLogger("analyzer")
 
 ATTRIBUTES_PROFILE_SCHEMA = ('dataset_id', 'column_name', 'distribution', 'rms_normed', 'y_mean')
-RESULTS_SCHEMA = ('dataset_id1', 'column_name1','dataset_id2', 'column_name2','kl_divergence', 'lex_distance')
+RESULTS_SCHEMA = ('dataset_id1', 'column_name1', 'type1', 'dataset_id2', 'column_name2', 'type2', 'kl_divergence', 'lex_distance')
 
 class analyzer(): # Contains configuration information common to all analyzers
     THETA_THRESHOLD = 0.5 # Threshold percentage of unique values in a number sequence beyond which it would be tagged Categorical
@@ -47,7 +47,7 @@ class analyzer(): # Contains configuration information common to all analyzers
     
     def export_results_to_csv(self, df, filename_prefix):
         # lg.debug('I am exporting {0}'.format(df))
-        filename = filename_prefix + datetime.datetime.now().strftime("_%Y%m%d_%H%M") + ".out"
+        filename = filename_prefix + datetime.datetime.now().strftime("_%Y%m%d_%H%M") + ".csv"
         # df.to_csv(path_or_buf=filename, float_format='%.6f', index=False)
         df.to_csv(path_or_buf=filename, index=False)
         lg.info('Attributes profile written to {0}'.format(filename))
@@ -65,6 +65,8 @@ class analyzer(): # Contains configuration information common to all analyzers
                     inferred_data_type = self.DATATYPES[0] #Numerical
             else: # Real numbers
                 inferred_data_type = self.DATATYPES[0] #Numerical
+            t = pd.to_numeric(s, errors='coerce')
+            s = t.dropna()
         elif is_string_dtype(s):
             lg.debug("{0} seems to be string".format(s.name))
             try:
@@ -130,15 +132,15 @@ class analyzer(): # Contains configuration information common to all analyzers
         #lg.debug('var1 inside myfunction ={0}'.format(var1))
         var2 = rdf.iloc[[j]]['column_name'].item()
         #lg.debug('var2 inside myfunction ={0}'.format(var2))
-        dist = Levenshtein.ratio(var1,var2)
+        similarity = Levenshtein.ratio(var1,var2)
         #dist1 = NGram.compare(var1,var2)
         #lg.debug('dist inside myfunction ={0}'.format(dist))
         # Way to access rows by index in a DataFrame. String Column_name at ith index is rdf.iloc[[i]]['column_name'].item()
-        return dist
+        return 1.0 - similarity
         
 
     def _export_comparisons_to_csv(self, rdf:pd.DataFrame, filename_prefix):
-        filename = filename_prefix + datetime.datetime.now().strftime("_%Y%m%d_%H%M") + ".out"
+        filename = filename_prefix + datetime.datetime.now().strftime("_%Y%m%d_%H%M") + ".csv"
         kl_analyzer = kl_divergence_analyzer()
         results_op = pd.DataFrame(columns=RESULTS_SCHEMA)
 
@@ -165,7 +167,7 @@ class analyzer(): # Contains configuration information common to all analyzers
                         #lg.debug("BS")
                         ld = self._lexicographical_distance(rdf, i, j)  
 
-                        r = pd.DataFrame([(d1_name, c1_name, d2_name, c2_name, kl, ld)], columns=RESULTS_SCHEMA)
+                        r = pd.DataFrame([(d1_name, c1_name, distri1, d2_name, c2_name, distri2, kl, ld)], columns=RESULTS_SCHEMA)
                         results_op = results_op.append(r)                      
                                       
         results_op.to_csv(path_or_buf=filename, index=False)
@@ -204,7 +206,7 @@ class log_likelihood_analyzer(numerical_analyzer):
             # Best holders initialization
             best_distribution = st.norm
             best_params = (0.0, 1.0)
-            best_sse = np.inf
+            lowest_rms = np.inf
 
             for distribution in self.DISTRIBUTIONS: 
                 lg.info("Modelling {0}({1}) with {2}".format(data.name, len(data), distribution.name))
@@ -229,10 +231,14 @@ class log_likelihood_analyzer(numerical_analyzer):
                 sse = np.sum(np.power(y - pdf, 2.0))
                 data_mean = np.mean(data)
                 rms = np.sqrt(sse) / max(abs(data_mean) , abs(np.max(data) - np.min(data)))
+                if rms < lowest_rms:
+                    lowest_rms = rms
+                    best_distribution = distribution.name
                 # rms = np.sqrt(sse) / (np.max(data) - np.min(data))
                 lg.debug("{0}.{1} by {2} = {3}".format(dataset_id, data.name, distribution.name, rms))
-                observations.append((dataset_id, data.name, distribution.name, rms , data_mean))
-                # observations.append((dataset_id, data.name, distribution.name, sse ))
+                # observations.append((dataset_id, data.name, distribution.name, rms , data_mean))
+                
+            observations.append((dataset_id, data.name, best_distribution, rms , data_mean))
         # else:
         #     raise ValueError('Non empty Dataset should be attached before starting comparison')
         except AttributeError as ae:
