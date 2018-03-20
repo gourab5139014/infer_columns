@@ -143,10 +143,11 @@ class analyzer(): # Contains configuration information common to all analyzers
         filename = filename_prefix + datetime.datetime.now().strftime("_%Y%m%d_%H%M") + ".csv"
         kl_analyzer = kl_divergence_analyzer()
         results_op = pd.DataFrame(columns=RESULTS_SCHEMA)
-
-        for i in range(0, len(rdf)):
+        lmax = len(rdf)
+        for i in range(0, lmax):
             rdf_i = rdf.iloc[[i]]
-            for j in range(0 , len(rdf)):
+            lg.debug("{0} of {1} attributes compared")
+            for j in range(0 , lmax):
                 if i != j:
                     rdf_j = rdf.iloc[[j]]
                     distri1 = rdf_i['distribution'].item()
