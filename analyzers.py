@@ -146,7 +146,7 @@ class analyzer(): # Contains configuration information common to all analyzers
         lmax = len(rdf)
         for i in range(0, lmax):
             rdf_i = rdf.iloc[[i]]
-            lg.debug("{0} of {1} attributes compared")
+            lg.debug("{0} of {1} attributes compared".format(i, lmax))
             for j in range(0 , lmax):
                 if i != j:
                     rdf_j = rdf.iloc[[j]]
