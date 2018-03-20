@@ -10,6 +10,8 @@ import datetime
 import traceback
 import logging, logging.config
 from kl_divergence_analyzer import kl_divergence_analyzer
+import Levenshtein
+from ngram import NGram
 
 logging.config.fileConfig('logging.conf')
 lg = logging.getLogger("analyzer")
@@ -124,8 +126,16 @@ class analyzer(): # Contains configuration information common to all analyzers
         :rtype: double Lexicographical Distance between attributes
         """
         # Logic goes here
+        var1 = rdf.iloc[[i]]['column_name'].item()
+        #lg.debug('var1 inside myfunction ={0}'.format(var1))
+        var2 = rdf.iloc[[j]]['column_name'].item()
+        #lg.debug('var2 inside myfunction ={0}'.format(var2))
+        dist = Levenshtein.ratio(var1,var2)
+        #dist1 = NGram.compare(var1,var2)
+        #lg.debug('dist inside myfunction ={0}'.format(dist))
         # Way to access rows by index in a DataFrame. String Column_name at ith index is rdf.iloc[[i]]['column_name'].item()
-        return 0.0
+        return dist
+        
 
     def _export_comparisons_to_csv(self, rdf:pd.DataFrame, filename_prefix):
         filename = filename_prefix + datetime.datetime.now().strftime("_%Y%m%d_%H%M") + ".out"
@@ -152,6 +162,7 @@ class analyzer(): # Contains configuration information common to all analyzers
                         c2 = d2[c2_name]
                         # print("Found {0} and {1}".format(c1.name, c2.name))
                         kl = kl_analyzer.normalized_kl_div(c1, distri1, c2, distri2)
+                        #lg.debug("BS")
                         ld = self._lexicographical_distance(rdf, i, j)  
 
                         r = pd.DataFrame([(d1_name, c1_name, d2_name, c2_name, kl, ld)], columns=RESULTS_SCHEMA)
