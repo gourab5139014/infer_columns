@@ -9,11 +9,13 @@ import csv
 import datetime
 import traceback
 import logging, logging.config
+from kl_divergence_analyzer import kl_divergence_analyzer
 
 logging.config.fileConfig('logging.conf')
 lg = logging.getLogger("analyzer")
 
-REPORTING_SCHEMA = ('dataset_id', 'column_name', 'distribution', 'rms_normed', 'y_mean')
+ATTRIBUTES_PROFILE_SCHEMA = ('dataset_id', 'column_name', 'distribution', 'rms_normed', 'y_mean')
+RESULTS_SCHEMA = ('dataset_id1', 'column_name1','dataset_id2', 'column_name2','kl_divergence', 'lex_distance')
 
 class analyzer(): # Contains configuration information common to all analyzers
     THETA_THRESHOLD = 0.5 # Threshold percentage of unique values in a number sequence beyond which it would be tagged Categorical
@@ -45,7 +47,7 @@ class analyzer(): # Contains configuration information common to all analyzers
         filename = filename_prefix + datetime.datetime.now().strftime("_%Y%m%d_%H%M") + ".out"
         # df.to_csv(path_or_buf=filename, float_format='%.6f', index=False)
         df.to_csv(path_or_buf=filename, index=False)
-        lg.info('Output written to {0}'.format(filename))
+        lg.info('Attributes profile written to {0}'.format(filename))
     
     def infer_data_type(self, s:pd.Series):
         inferred_data_type = self.DATATYPES[-1]
@@ -81,7 +83,7 @@ class analyzer(): # Contains configuration information common to all analyzers
 
     def run(self):
         # lg.debug("Datasets \n{0}".format(self.datasets))
-        results = pd.DataFrame(columns=REPORTING_SCHEMA)
+        results = pd.DataFrame(columns=ATTRIBUTES_PROFILE_SCHEMA) # These results are JUST profiles of individual attributes
         for d in self.datasets:
             lg.info('Analyzing dataset {0}'.format(d))
             df = self.datasets[d]
@@ -105,15 +107,61 @@ class analyzer(): # Contains configuration information common to all analyzers
                         # results = results.append([(d, c, self.DATATYPES[1], 1 )])
                     else : # Case for "Other" data type. Always the last listed datatype
                         # Log this column as other
-                        r = pd.DataFrame([(d, c, self.DATATYPES[-1], 1, 0)], columns=REPORTING_SCHEMA)
+                        r = pd.DataFrame([(d, c, self.DATATYPES[-1], 1, 0)], columns=ATTRIBUTES_PROFILE_SCHEMA)
                         results = results.append(r)
                 except :
                     lg.exception(traceback.print_exc())
             
-        self.export_results_to_csv(results, "./outputs/ConsolidateOP") 
+        # self.export_results_to_csv(results, "./outputs/ConsolidateOP")
+        self._export_comparisons_to_csv(results, "./outputs/ColumnSimilarities") 
+            
+    def _lexicographical_distance(self, rdf, i, j): #TODO For Poonam
+        """ Returns lexicographical distance of two attributes in a dataset. 
+        :parameter rdf: pd.DataFrame Contains intermediate results from distribution profiling of attributes of all datasets in the schema self.ATTRIBUTES_PROFILE_SCHEMA
+        :parameter i: int
+        :parameter j: int
+        :rtype: double Lexicographical Distance between attributes
+        """
+        # Logic goes here
+        # Way to access rows by index in a DataFrame. String Column_name at ith index is rdf.iloc[[i]]['column_name'].item()
+        return 0.0
+
+    def _export_comparisons_to_csv(self, rdf:pd.DataFrame, filename_prefix):
+        filename = filename_prefix + datetime.datetime.now().strftime("_%Y%m%d_%H%M") + ".out"
+        kl_analyzer = kl_divergence_analyzer()
+        results_op = pd.DataFrame(columns=RESULTS_SCHEMA)
+
+        for i in range(0, len(rdf)):
+            rdf_i = rdf.iloc[[i]]
+            for j in range(0 , len(rdf)):
+                if i != j:
+                    rdf_j = rdf.iloc[[j]]
+                    distri1 = rdf_i['distribution'].item()
+                    distri2 = rdf_i['distribution'].item()
+                    print("rdf[{0}] = {1} AND rdf[{2}]={3}".format(i, distri1, j, distri2))
+                    if(distri1 == self.DATATYPES[0] and distri2 == self.DATATYPES[1]): # Both attributes are Numerical
+                    # if(True):
+                        d1_name = rdf_i['dataset_id'].item()
+                        c1_name = rdf_i['column_name'].item()
+                        d1 = self.datasets[d1_name]
+                        c1 = d1[c1_name]
+
+                        d2_name = rdf_j['dataset_id'].item()
+                        c2_name = rdf_j['column_name'].item()
+                        d2 = self.datasets[d2_name]
+                        c2 = d2[c2_name]
+                        # print("Found {0} and {1}".format(c1.name, c2.name))
+                        kl = kl_analyzer.normalized_kl_div(c1, distri1, c2, distri2)
+                        ld = self._lexicographical_distance(rdf, i, j)  
+
+                        r = pd.DataFrame([(d1_name, c1_name, d2_name, c2_name, kl, ld)], columns=RESULTS_SCHEMA)
+                        results_op = results_op.append(r)                      
+                                      
+        results_op.to_csv(path_or_buf=filename, index=False)
+        lg.info('Output written to {0}'.format(filename))
 
     def _apply_categorical_analyses(self, s:pd.Series, name):
-        return pd.DataFrame([(name, s.name, 'Categorical', 1, 0)], columns=REPORTING_SCHEMA)
+        return pd.DataFrame([(name, s.name, 'Categorical', 1, 0)], columns=ATTRIBUTES_PROFILE_SCHEMA)
     
     def _apply_numerical_analyses(self, s, dataset_name):
         lla = log_likelihood_analyzer()
@@ -131,87 +179,6 @@ class numerical_analyzer(analyzer): #TODO Maybe we dont need these anymore
         lg.debug("Numerical Analyzer created")
         analyzer.__init__(self)
         
-class kl_divergence_analyzer(analyzer):
-    def __init__(self):
-        lg.debug("KL Analyzer Created")
-    
-    def _kl_div_scipy(self, p,q):
-        p = np.asarray(p, dtype=np.float64)
-        q = np.asarray(q, dtype=np.float64)
-        # return np.sum(np.where(p != 0, p * np.log(p / q), 0))
-        return st.entropy(p,q)
-
-    def _my_kl_divergence(self, p,q):
-        """ Returns Kl Divergence of two integer lists. Theory at https://www.countbayesie.com/blog/2017/5/9/kullback-leibler-divergence-explained
-        :type p: List[int]
-        :type q: List[int]
-        :rtype: double
-        """
-        cf1 = Counter(p)
-        cf2 = Counter(q)
-        
-        lg.debug("Initial Lengths cf1 {0} , cf2 {1}".format(len(cf1),len(cf2)))
-        lg.debug(cf1.keys())
-        lg.debug(cf2.keys())
-        # Pre-processing for using KL Divergence of Frequency Counters cf1 and cf2
-        s = set(cf1.keys())
-        s = s.intersection(cf2.keys()) # Collecting all unique elements in cf1 and cf2
-
-        # REmoving elements which are not in intersection of CF1 and CF2
-        for e in list(cf1):
-            if e not in s:
-                cf1.pop(e, None)
-
-        for e in list(cf2):
-            if e not in s:
-                cf2.pop(e, None)
-        
-        l1, l2 = len(cf1), len(cf2)
-        # Normalizing the series to reflect probabilities of occurence
-        for e in list(cf1): # Since we can't iterate over a mutable collection undergoing change
-            if e in s:
-                cf1[e] = float(cf1[e]/l1)
-            else:
-                cf1.pop(e, None)
-        for f in list(cf2):
-            if f in s:
-                cf2[f] = float(cf2[f]/l2)
-            else:
-                cf2.pop(f, None)
-        lg.debug("Normalized Lengths cf1 {0} , cf2 {1}".format(len(cf1),len(cf2)))
-        lg.debug("Sum CF1 {0}".format(np.sum(list(cf1.values()))))
-        lg.debug("Sum CF2 {0}".format(np.sum(list(cf2.values()))))
-        lib_val = self._kl_div_scipy(list(cf1.values()),list(cf2.values()))
-        return lib_val
-    
-    def _score_with_normal(self, dst):
-        lower, upper = np.min(dst), np.max(dst)
-        mu, sigma = np.mean(dst), np.std(dst)
-        # s = np.random.truncnorm(mu, sigma, len(dst)) # TODO How many points to sample ?
-        s = st.truncnorm(a = (lower - mu) / sigma, b = (upper - mu) / sigma, loc=mu, scale=sigma).rvs(len(dst))
-        s = s.round().astype(int)
-        return self._my_kl_divergence(dst, s)
-    
-    def _score_with_uniform(self, dst):
-        lower, upper = np.min(dst), np.max(dst)
-        u = np.random.uniform(lower, upper, len(dst)) # TODO How many points to sample ?
-        u = u.round().astype(int)
-        return self._my_kl_divergence(dst, u)
-
-    def score_with_kl_divergence(self, dataset_id):
-        try:
-            if not self.dataset.empty: #Do the attribute scoring here
-                lg.debug("Starting comparison by KL")
-                d = pd.Series(self.dataset['Total'])
-                lg.debug(d.name)
-                n_score = self._score_with_normal(d.copy())
-                lg.info("Score with Normal Distribution = {0}\n".format(n_score))
-                u_score = self._score_with_uniform(d.copy())
-                lg.info("Score with Uniform Distribution = {0}".format(u_score))
-            else:
-                raise ValueError('Non empty Dataset should be attached before starting comparison')
-        except AttributeError as ae:
-            lg.critical("{0}. Non empty Dataset should be attached before starting comparison".format(ae))
 
 class log_likelihood_analyzer(numerical_analyzer):
     def __init__(self):
@@ -259,5 +226,5 @@ class log_likelihood_analyzer(numerical_analyzer):
         #     raise ValueError('Non empty Dataset should be attached before starting comparison')
         except AttributeError as ae:
             lg.critical("{0}. {1}".format(ae, traceback.format_exc()))
-        observations_df = pd.DataFrame(observations, columns=(REPORTING_SCHEMA))
+        observations_df = pd.DataFrame(observations, columns=(ATTRIBUTES_PROFILE_SCHEMA))
         return observations_df

@@ -25,7 +25,7 @@ def get_uniform_distributed_integers(min_value, max_value, total, fliped):
 if __name__ == "__main__":    
     a = analyzer()
     datasets = []
-    for filename in glob.glob('data/*.csv'):
+    for filename in glob.glob('data_test/*.csv'):
         print(filename)
         a.add_dataset(filename)
     a.run()
