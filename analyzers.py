@@ -128,9 +128,11 @@ class analyzer(): # Contains configuration information common to all analyzers
         :rtype: double Lexicographical Distance between attributes
         """
         # Logic goes here
-        var1 = rdf.iloc[[i]]['column_name'].item()
+        # var1 = rdf.iloc[[i]]['column_name'].item()
+        var1 = rdf.at[i, 'column_name']
         #lg.debug('var1 inside myfunction ={0}'.format(var1))
-        var2 = rdf.iloc[[j]]['column_name'].item()
+        # var2 = rdf.iloc[[j]]['column_name'].item()
+        var2 = rdf.at[j, 'column_name']
         #lg.debug('var2 inside myfunction ={0}'.format(var2))
         similarity = Levenshtein.ratio(var1,var2)
         #dist1 = NGram.compare(var1,var2)
@@ -140,27 +142,32 @@ class analyzer(): # Contains configuration information common to all analyzers
         
 
     def _export_comparisons_to_csv(self, rdf:pd.DataFrame, filename_prefix):
+        rdf = rdf.reset_index()
+        # print("At final export : {0}".format(rdf))
         filename = filename_prefix + datetime.datetime.now().strftime("_%Y%m%d_%H%M") + ".csv"
         kl_analyzer = kl_divergence_analyzer()
         results_op = pd.DataFrame(columns=RESULTS_SCHEMA)
         lmax = len(rdf)
         for i in range(0, lmax):
-            rdf_i = rdf.iloc[[i]]
+            # rdf_i = rdf.iat[[i]]
             lg.debug("{0} of {1} attributes compared".format(i, lmax))
             for j in range(0 , lmax):
                 if i != j:
-                    rdf_j = rdf.iloc[[j]]
-                    distri1 = rdf_i['distribution'].item()
-                    distri2 = rdf_i['distribution'].item()
+                    # rdf_j = rdf.at[[j]]
+                    # distri1 = rdf_i['distribution'].item()
+                    distri1 = rdf.at[i,'distribution']
+                    # distri2 = rdf_i['distribution'].item()
+                    distri2 = rdf.at[j,'distribution']
                     # print("rdf[{0}] = {1} AND rdf[{2}]={3}".format(i, distri1, j, distri2))
                     if(distri1 in self.DISTRIBUTION_NAMES and distri2 in self.DISTRIBUTION_NAMES): # Both attributes are Numerical
-                        d1_name = rdf_i['dataset_id'].item()
-                        c1_name = rdf_i['column_name'].item()
+                        # d1_name = rdf_i['dataset_id'].item()
+                        d1_name = rdf.at[i,'dataset_id']
+                        c1_name = rdf.at[i,'column_name']
                         d1 = self.datasets[d1_name]
                         c1 = d1[c1_name]
 
-                        d2_name = rdf_j['dataset_id'].item()
-                        c2_name = rdf_j['column_name'].item()
+                        d2_name = rdf.at[j,'dataset_id']
+                        c2_name = rdf.at[j, 'column_name']
                         d2 = self.datasets[d2_name]
                         c2 = d2[c2_name]
                         # print("Found {0} and {1}".format(c1.name, c2.name))
