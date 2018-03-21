@@ -3,5 +3,6 @@
 /data
 /data_test
 /logs
+/__pycache__
 /outputs/*.csv
 /outputs/*.out
