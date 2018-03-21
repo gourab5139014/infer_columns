@@ -4,12 +4,14 @@ from matplotlib.widgets import Button
 from matplotlib.text import Annotation
 import seaborn as sns
 
+DATA_LABELS = False # Boolean to control Data label callouts in points
+
 # Config for plotting groups
 X_THRESHOLD = 0.5 # KL_DIVERGENCE
 Y_THRESHOLD = 0.5 # LEX_DISTANCE
 
 def assign_group(x,y):
-    QUADRANT_COLORS = {1:"#e41a1c", 2:"#377eb8", 3:"#4daf4a", 4:"#000000"}
+    QUADRANT_COLORS = {1:"#e41a1c", 2:"#377eb8", 3:"#4daf4a", 4:"#BDB76B"}
     
     if x >= X_THRESHOLD and y >= Y_THRESHOLD:
         c = QUADRANT_COLORS[1]
@@ -31,7 +33,9 @@ if __name__ == "__main__":
         next(plots, None)  # skip the headers
         for row in plots:
             px, py = float(row[6]), float(row[7])
-            lbl = "{0}:{1}".format(row[1], row[4])
+            d1 = row[0].split("\\")[-1].split(".")[0]
+            d2 = row[3].split("\\")[-1].split(".")[0]
+            lbl = "{0}.{1}|{2}.{3}".format(d1, row[1], d2, row[4])
             # print("Read {0} and {1}".format(px, py))
             x.append(px)
             y.append(py)
@@ -42,7 +46,10 @@ if __name__ == "__main__":
         fig = plt.figure()
         ax = plt.subplot()
         def draw_scatterplot():
-            ax.scatter(x, y, c=c, picker=True)
+            ax.scatter(x, y, c=c, picker=True, s=10)
+            ax.set_xlabel('KL Divergence')
+            ax.set_ylabel('Lexicographical Distance')
+            ax.set_title('KL vs LD\n{0}'.format(argv[1]))
 
         draw_scatterplot()
 
@@ -70,18 +77,15 @@ if __name__ == "__main__":
                 print("index", i, label)
 
                 # step 5: create and add the text annotation to the scatterplot
-                annotate(
-                    ax,
-                    label,
-                    label_pos_x + offset,
-                    label_pos_y + offset
-                )
+                if DATA_LABELS:
+                    annotate(ax,label,label_pos_x + offset,label_pos_y + offset)
 
                 # step 6: force re-draw
                 ax.figure.canvas.draw_idle()
 
                 # alter the offset just in case there are more than one dots affected by the click
-                offset += 0.01
+                if DATA_LABELS:
+                    offset += 0.1
 
         # connect the click handler function to the scatterplot
         fig.canvas.mpl_connect('pick_event', onpick)
@@ -106,9 +110,6 @@ if __name__ == "__main__":
         plt.plot()
         print("scatterplot done")
 
-        ax.set_xlabel('KL Divergence')
-        ax.set_ylabel('Lexicographical Distance')
-        ax.set_title('KL vs LD\n{0}'.format(argv[1]))
         # present the scatterplot
         plt.show()
         # plt.scatter(x,y)
