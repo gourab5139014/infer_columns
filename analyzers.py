@@ -17,7 +17,7 @@ logging.config.fileConfig('logging.conf')
 lg = logging.getLogger("analyzer")
 
 ATTRIBUTES_PROFILE_SCHEMA = ('dataset_id', 'column_name', 'distribution', 'rms_normed', 'y_mean')
-RESULTS_SCHEMA = ('dataset_id1', 'column_name1', 'type1', 'dataset_id2', 'column_name2', 'type2', 'kl_divergence', 'lex_distance')
+RESULTS_SCHEMA = ('dataset_id1', 'column_name1', 'type1', 'dataset_id2', 'column_name2', 'type2', 'kl_divergence', 'lex_distance_lv','lex_distance_ng')
 
 class analyzer(): # Contains configuration information common to all analyzers
     THETA_THRESHOLD = 0.5 # Threshold percentage of unique values in a number sequence beyond which it would be tagged Categorical
@@ -120,26 +120,29 @@ class analyzer(): # Contains configuration information common to all analyzers
         self.export_results_to_csv(results, "./outputs/ConsolidateOP")
         self._export_comparisons_to_csv(results, "./outputs/ColumnSimilarities") 
             
-    def _lexicographical_distance(self, rdf, i, j): #TODO For Poonam
-        """ Returns lexicographical distance of two attributes in a dataset. 
+    def _lexicographical_distance_lv(self, rdf, i, j):
+        """ Returns lexicographical Levenshtein distance of two attributes in a dataset. 
         :parameter rdf: pd.DataFrame Contains intermediate results from distribution profiling of attributes of all datasets in the schema self.ATTRIBUTES_PROFILE_SCHEMA
         :parameter i: int
         :parameter j: int
         :rtype: double Lexicographical Distance between attributes
         """
-        # Logic goes here
-        # var1 = rdf.iloc[[i]]['column_name'].item()
         var1 = rdf.at[i, 'column_name']
-        #lg.debug('var1 inside myfunction ={0}'.format(var1))
-        # var2 = rdf.iloc[[j]]['column_name'].item()
         var2 = rdf.at[j, 'column_name']
-        #lg.debug('var2 inside myfunction ={0}'.format(var2))
         similarity = Levenshtein.ratio(var1,var2)
-        #dist1 = NGram.compare(var1,var2)
-        #lg.debug('dist inside myfunction ={0}'.format(dist))
-        # Way to access rows by index in a DataFrame. String Column_name at ith index is rdf.iloc[[i]]['column_name'].item()
         return 1.0 - similarity
-        
+
+    def _lexicographical_distance_ng(self, rdf, i, j):
+        """ Returns lexicographical Levenshtein distance of two attributes in a dataset. 
+        :parameter rdf: pd.DataFrame Contains intermediate results from distribution profiling of attributes of all datasets in the schema self.ATTRIBUTES_PROFILE_SCHEMA
+        :parameter i: int
+        :parameter j: int
+        :rtype: double Lexicographical Distance between attributes
+        """
+        var1 = rdf.at[i, 'column_name']
+        var2 = rdf.at[j, 'column_name']
+        similarity = NGram.compare(var1,var2)
+        return 1.0 - similarity
 
     def _export_comparisons_to_csv(self, rdf:pd.DataFrame, filename_prefix):
         rdf.reset_index(inplace=True)
@@ -173,9 +176,10 @@ class analyzer(): # Contains configuration information common to all analyzers
                         # print("Found {0} and {1}".format(c1.name, c2.name))
                         kl = kl_analyzer.normalized_kl_div(c1, distri1, c2, distri2)
                         #lg.debug("BS")
-                        ld = self._lexicographical_distance(rdf, i, j)  
+                        ld = self._lexicographical_distance_lv(rdf, i, j)  
+                        ng = self._lexicographical_distance_ng(rdf, i, j)  
 
-                        r = pd.DataFrame([(d1_name, c1_name, distri1, d2_name, c2_name, distri2, kl, ld)], columns=RESULTS_SCHEMA)
+                        r = pd.DataFrame([(d1_name, c1_name, distri1, d2_name, c2_name, distri2, kl, ld, ng)], columns=RESULTS_SCHEMA)
                         results_op = results_op.append(r)                      
                                       
         results_op.to_csv(path_or_buf=filename, index=False)

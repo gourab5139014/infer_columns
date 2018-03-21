@@ -4,8 +4,10 @@ from matplotlib.widgets import Button
 from matplotlib.text import Annotation
 import seaborn as sns
 
-DATA_LABELS = False # Boolean to control Data label callouts in points
+PLOT_LEV = True
+PLOT_NGRAM = not PLOT_LEV
 
+DATA_LABELS = False # Boolean to control Data label callouts in points
 # Config for plotting groups
 X_THRESHOLD = 0.5 # KL_DIVERGENCE
 Y_THRESHOLD = 0.5 # LEX_DISTANCE
@@ -32,7 +34,8 @@ if __name__ == "__main__":
         plots = csv.reader(csvfile, delimiter=',')
         next(plots, None)  # skip the headers
         for row in plots:
-            px, py = float(row[6]), float(row[7])
+            px = float(row[6])
+            py = ( float(row[7]) if PLOT_LEV else float(row[8]) )
             d1 = row[0].split("\\")[-1].split(".")[0]
             d2 = row[3].split("\\")[-1].split(".")[0]
             lbl = "{0}.{1}|{2}.{3}".format(d1, row[1], d2, row[4])
