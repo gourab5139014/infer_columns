@@ -142,7 +142,7 @@ class analyzer(): # Contains configuration information common to all analyzers
         
 
     def _export_comparisons_to_csv(self, rdf:pd.DataFrame, filename_prefix):
-        rdf = rdf.reset_index()
+        rdf.reset_index(inplace=True)
         # print("At final export : {0}".format(rdf))
         filename = filename_prefix + datetime.datetime.now().strftime("_%Y%m%d_%H%M") + ".csv"
         kl_analyzer = kl_divergence_analyzer()

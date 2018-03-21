@@ -14,13 +14,6 @@ import sys, traceback
 logging.config.fileConfig('logging.conf')
 lg = logging.getLogger("loki")
 
-def get_uniform_distributed_integers(min_value, max_value, total, fliped):
-    fake1 = np.linspace(min_value, max_value, total, dtype=int)
-    replace_at = np.random.randint(min_value, max_value, size=fliped)
-    for i in range(0, len(fake1)):
-        if(i in replace_at):
-            fake1[i] = np.random.randint(min_value, max_value)
-    return fake1
 
 if __name__ == "__main__":    
     a = analyzer()

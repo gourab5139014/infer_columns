@@ -3,4 +3,5 @@
 /data
 /data_test
 /logs
-/outputs
+/outputs/*.csv
+/outputs/*.out
