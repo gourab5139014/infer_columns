@@ -63,6 +63,7 @@ class analyzer(): # Contains configuration information common to all analyzers
             RESULTS_SCHEMA[4]:'first', 
             RESULTS_SCHEMA[7]:'first', 
             RESULTS_SCHEMA[8]:'first'})
+        res.sort_index(axis=1, inplace=True)
         res.to_csv(path_or_buf=filename, index=False)
         lg.info('Best KL divergence written to {0}'.format(filename))
 

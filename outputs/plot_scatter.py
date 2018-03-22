@@ -38,7 +38,7 @@ if __name__ == "__main__":
             py = ( float(row[7]) if PLOT_LEV else float(row[8]) )
             d1 = row[0].split("\\")[-1].split(".")[0]
             d2 = row[3].split("\\")[-1].split(".")[0]
-            lbl = "{0}.{1}|{2}.{3}".format(d1, row[1], d2, row[4])
+            lbl = "{0}->{1} | {2}->{3}".format(d1, row[1], d2, row[2])
             # print("Read {0} and {1}".format(px, py))
             x.append(px)
             y.append(py)

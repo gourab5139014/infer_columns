@@ -5,8 +5,6 @@ from matplotlib.text import Annotation
 import numpy as np
 import seaborn as sns
 
-PLOT_LEV = True
-PLOT_NGRAM = not PLOT_LEV
 
 DATA_LABELS = False # Boolean to control Data label callouts in points
 
@@ -20,24 +18,31 @@ if __name__ == "__main__":
         next(plots, None)  # skip the headers
         for row in plots:
             # px = float(row[6])
-            py = ( float(row[5]) if PLOT_LEV else float(row[6]) )
-            d1 = row[0].split("\\")[-1].split(".")[0]
-            d2 = row[4].split("\\")[-1].split(".")[0]
-            lbl = "{0}.{1} | {2}.{3}".format(d1, row[1], d2, row[3])
+            # py = ( float(row[5]) if PLOT_LEV else float(row[6]) )
+            py = float(row[4])
+            d1 = row[2].split("\\")[-1].split(".")[0]
+            d2 = row[3].split("\\")[-1].split(".")[0]
+            lbl = "{0}->{1} | {2}->{3}".format(d1, row[0], d2, row[1])
             # print("Read {0} and {1}".format(px, py))
             # x.append(px)
             y.append(py)
             # c.append(assign_group(px, py))
             generated_labels.append(lbl)
-        x = np.linspace(start=1, stop=len(y),num=len(y), endpoint=True, dtype='int').tolist() 
+        x = np.linspace(start=1, stop=len(y),num=len(y), endpoint=True, dtype='int').tolist()
+        x_line = int(0.8 * len(x)) 
         y = np.sort(y).tolist()
+        y_line = y[x_line]
         # fig = plt.figure(figsize=(20, 16))
         fig = plt.figure()
         ax = plt.subplot()
         def draw_scatterplot():
             # ax.set_ylim([0,1])
             ax.scatter(x, y, picker=True, s=10)
-            ax.set_xlabel('KL Divergence')
+            ax.axvline(x = x_line, c = 'r')
+            ax.axhline(y = y_line, c = 'r')
+            ax.get_xaxis().set_visible(False)
+            ax.text(0,y_line+0.2,'y = {:2.3f}'.format(y_line),rotation=90)
+            # ax.set_xlabel('KL Divergence')
             ax.set_title('CDF of Best matching columns by KL divergence\n{0}'.format(argv[1]))
 
         draw_scatterplot()
