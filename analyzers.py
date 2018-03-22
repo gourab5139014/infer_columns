@@ -52,6 +52,20 @@ class analyzer(): # Contains configuration information common to all analyzers
         df.to_csv(path_or_buf=filename, index=False)
         lg.info('Attributes profile written to {0}'.format(filename))
     
+    def _export_best_kl_div_pairs(self, rdf, filename_prefix):
+        # print('I am exporting {0}'.format(rdf))
+        filename = filename_prefix + datetime.datetime.now().strftime("_%Y%m%d_%H%M") + ".csv"
+        # df.to_csv(path_or_buf=filename, float_format='%.6f', index=False)
+        # res = rdf.groupby(['dataset_id1','column_name1'], as_index=False).agg({'kl_divergence':'min', 'dataset_id2':'first', 'column_name2':'first', 'lex_distance_lv':'first', 'lex_distance_ng':'first'})
+        res = rdf.groupby([RESULTS_SCHEMA[0],RESULTS_SCHEMA[1]], as_index=False).agg({
+            RESULTS_SCHEMA[6]:'min', 
+            RESULTS_SCHEMA[3]:'first', 
+            RESULTS_SCHEMA[4]:'first', 
+            RESULTS_SCHEMA[7]:'first', 
+            RESULTS_SCHEMA[8]:'first'})
+        res.to_csv(path_or_buf=filename, index=False)
+        lg.info('Best KL divergence written to {0}'.format(filename))
+
     def infer_data_type(self, s:pd.Series):
         inferred_data_type = self.DATATYPES[-1]
         if is_numeric_dtype(s):
@@ -117,8 +131,9 @@ class analyzer(): # Contains configuration information common to all analyzers
                 except :
                     lg.exception(traceback.print_exc())
             
-        self.export_results_to_csv(results, "./outputs/ConsolidateOP")
-        self._export_comparisons_to_csv(results, "./outputs/ColumnSimilarities") 
+        # self.export_results_to_csv(results, "./outputs/ConsolidateOP")
+        comparison_results = self._export_comparisons_to_csv(results, "./outputs/ColumnSimilarities")
+        self._export_best_kl_div_pairs(comparison_results,"./outputs/BestKLDpairs")
             
     def _lexicographical_distance_lv(self, rdf, i, j):
         """ Returns lexicographical Levenshtein distance of two attributes in a dataset. 
@@ -184,6 +199,7 @@ class analyzer(): # Contains configuration information common to all analyzers
                                       
         results_op.to_csv(path_or_buf=filename, index=False)
         lg.info('Output written to {0}'.format(filename))
+        return results_op
 
     def _apply_categorical_analyses(self, s:pd.Series, name):
         return pd.DataFrame([(name, s.name, 'Categorical', 1, 0)], columns=ATTRIBUTES_PROFILE_SCHEMA)
