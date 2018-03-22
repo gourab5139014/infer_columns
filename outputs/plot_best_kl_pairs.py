@@ -23,7 +23,7 @@ if __name__ == "__main__":
             py = ( float(row[5]) if PLOT_LEV else float(row[6]) )
             d1 = row[0].split("\\")[-1].split(".")[0]
             d2 = row[4].split("\\")[-1].split(".")[0]
-            lbl = "{0}.{1} | {2}.{3}".format(d1, row[1], d2, row[4])
+            lbl = "{0}.{1} | {2}.{3}".format(d1, row[1], d2, row[3])
             # print("Read {0} and {1}".format(px, py))
             # x.append(px)
             y.append(py)
@@ -35,10 +35,9 @@ if __name__ == "__main__":
         fig = plt.figure()
         ax = plt.subplot()
         def draw_scatterplot():
+            # ax.set_ylim([0,1])
             ax.scatter(x, y, picker=True, s=10)
-            # ax.plot(x, y, picker=True)
             ax.set_xlabel('KL Divergence')
-            # ax.set_ylabel('Lexicographical Distance')
             ax.set_title('CDF of Best matching columns by KL divergence\n{0}'.format(argv[1]))
 
         draw_scatterplot()
