@@ -62,10 +62,13 @@ class analyzer(): # Contains configuration information common to all analyzers
             RESULTS_SCHEMA[3]:'first', 
             RESULTS_SCHEMA[4]:'first', 
             RESULTS_SCHEMA[7]:'first', 
-            RESULTS_SCHEMA[8]:'first'})
+            RESULTS_SCHEMA[8]:'first',
+            RESULTS_SCHEMA[2]:'first',
+            RESULTS_SCHEMA[5]:'first'})
         res.sort_index(axis=1, inplace=True)
         res.to_csv(path_or_buf=filename, index=False)
         lg.info('Best KL divergence written to {0}'.format(filename))
+        return res
 
     def infer_data_type(self, s:pd.Series):
         inferred_data_type = self.DATATYPES[-1]
@@ -134,7 +137,8 @@ class analyzer(): # Contains configuration information common to all analyzers
             
         # self.export_results_to_csv(results, "./outputs/ConsolidateOP")
         comparison_results = self._export_comparisons_to_csv(results, "./outputs/ColumnSimilarities")
-        self._export_best_kl_div_pairs(comparison_results,"./outputs/BestKLDpairs")
+        results_best_kl_only = self._export_best_kl_div_pairs(comparison_results,"./outputs/BestKLDpairs")
+        
             
     def _lexicographical_distance_lv(self, rdf, i, j):
         """ Returns lexicographical Levenshtein distance of two attributes in a dataset. 
@@ -198,6 +202,7 @@ class analyzer(): # Contains configuration information common to all analyzers
                         r = pd.DataFrame([(d1_name, c1_name, distri1, d2_name, c2_name, distri2, kl, ld, ng)], columns=RESULTS_SCHEMA)
                         results_op = results_op.append(r)                      
                                       
+        results_op.sort_index(axis=1, inplace=True)
         results_op.to_csv(path_or_buf=filename, index=False)
         lg.info('Output written to {0}'.format(filename))
         return results_op
