@@ -24,8 +24,8 @@ class analyzer(): # Contains configuration information common to all analyzers
     
     DATATYPES = ["Numerical","Categorical", "Other"] # Data types that are inferred
     # DISTRIBUTIONS = [st.uniform, st.norm, st.zipf]
-    DISTRIBUTIONS = [st.norm, st.uniform]
-    DISTRIBUTION_NAMES = ["norm","uniform"] # Numerical data types that are inferred
+    DISTRIBUTIONS = [st.norm, st.uniform, st.lognorm]
+    DISTRIBUTION_NAMES = ["norm","uniform", "lognorm"] # Numerical data types that are inferred
 
     def __init__(self):
         lg.debug("Analyzer Created")
